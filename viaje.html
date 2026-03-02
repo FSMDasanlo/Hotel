@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Viaje - Roomly</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <a href="index.html"><img src="img/logo_icon.png" alt="Roomly Logo" class="logo"></a>
+        <nav>
+            <a href="index.html">Volver a Viajes</a>
+        </nav>
+    </header>
+
+    <!-- Cabecera del Viaje -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 id="tripTitle">Cargando viaje...</h2>
+                <p id="tripDetails" style="color: var(--text-light-color); margin-top: 0.5rem;"></p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                <button id="btnEditTrip" class="btn-secondary" style="font-size: 0.9rem;"><i class="fas fa-pencil-alt"></i> Editar</button>
+                <button id="btnDeleteTrip" class="btn-danger" title="Eliminar Viaje" style="font-size: 0.9rem;"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario para Editar Viaje (Oculto por defecto) -->
+    <div id="editTripModal" class="card" style="display: none; border: 2px solid var(--secondary-color);">
+        <h3>Editar Datos del Viaje</h3>
+        <form id="editTripForm">
+            <div class="input-group">
+                <label for="editTripName">Nombre del Viaje</label>
+                <input type="text" id="editTripName" required>
+            </div>
+            <div class="input-group">
+                <label for="editTripCity">Ciudad (País)</label>
+                <input type="text" id="editTripCity" required>
+            </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label for="editTripStartDate">Fecha de Inicio</label>
+                    <input type="date" id="editTripStartDate" required>
+                </div>
+                <div class="input-group">
+                    <label for="editTripEndDate">Fecha de Fin</label>
+                    <input type="date" id="editTripEndDate" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="input-group">
+                    <label for="editTripRooms">Nº de Habitaciones</label>
+                    <input type="number" id="editTripRooms" min="1" required>
+                </div>
+                <div class="input-group">
+                    <label for="editTripPeople">Nº de Personas</label>
+                    <input type="number" id="editTripPeople" min="1" required>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button type="submit" class="btn-primary">Guardar Cambios</button>
+                <button type="button" id="cancelEditTrip" class="btn-secondary" style="background-color: #6c757d;">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Configuración de Criterios (Ponderación) -->
+    <div class="card">
+        <div class="section-header">
+            <h3><i class="fas fa-sliders-h"></i> Configuración de Criterios</h3>
+            <button id="toggleConfigBtn" class="btn-secondary" style="font-size: 0.9rem;">Mostrar/Ocultar</button>
+        </div>
+        
+        <div id="configSection" class="config-section" style="display:none;">
+            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Selecciona las características importantes para este viaje y asigna un peso del 1 (poco importante) al 9 (muy importante).</p>
+            <form id="criteriaForm">
+                <div id="criteriaList">
+                    <!-- Tabla generada dinámicamente -->
+                </div>
+                <div style="margin-top: 1.5rem; text-align: right;">
+                    <button type="submit" class="btn-primary">Guardar Configuración</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ranking de Hoteles -->
+    <div class="card">
+        <div class="section-header">
+            <h2>Ranking de Hoteles</h2>
+            <button id="btnAddHotel" class="btn-primary"><i class="fas fa-plus"></i> Añadir Hotel</button>
+        </div>
+        <div id="hotelsList" class="hotel-ranking">
+            <p style="text-align: center;">No hay hoteles añadidos aún.</p>
+        </div>
+    </div>
+
+    <!-- Modal / Formulario para añadir Hotel (Oculto por defecto) -->
+    <div id="addHotelModal" class="card" style="display: none; border: 2px solid var(--primary-color);">
+        <h3 id="modalTitle">Añadir Nuevo Hotel</h3>
+        <form id="addHotelForm">
+            <div class="input-group">
+                <label>Nombre del Hotel</label>
+                <input type="text" id="hotelName" required>
+            </div>
+            <div class="input-group">
+                <label>Precio Total (€)</label>
+                <input type="number" id="hotelPrice" placeholder="Ej: 1200" required>
+            </div>
+            <div class="input-group">
+                <label>Enlace (URL)</label>
+                <input type="text" id="hotelLink" placeholder="https://booking.com/...">
+            </div>
+            
+            <h4>Valoración de Criterios (0 - 10)</h4>
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">Puntúa solo los criterios activos para este viaje.</p>
+            
+            <div id="hotelRatingsInputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <!-- Inputs generados dinámicamente según la configuración -->
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button type="submit" id="btnSaveHotel" class="btn-primary">Guardar Hotel</button>
+                <button type="button" id="cancelAddHotel" class="btn-secondary" style="background-color: #6c757d;">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/viaje.js"></script>
+
+</body>
+</html>
