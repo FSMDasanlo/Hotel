@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selector de Torneos de Padel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+   
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1><i class="fas fa-trophy"></i>Selección de Hotel</h1>
+    </header>
+
+    <!-- Contenedor para crear nuevo viaje -->
+    <div id="createTournamentCard" class="card" style="display: none;">
+        <h2>Crear Nuevo Viaje</h2>
+        <div class="input-group">
+            <input type="text" id="newTournamentName" placeholder="Nombre del nuevo Viaje">
+            <button class="btn-primary"><i class="fas fa-plus"></i> Crear y Abrir</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-header">
+            <h2>Seleccionar Viaje</h2>
+            <button id="showCreateBtn" class="btn-secondary"><i class="fas fa-plus"></i> Nuevo</button>
+        </div>
+        <div id="tournamentsList">
+            <p>Cargando Viajes...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts de Firebase y de la aplicación -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="js/index.js"></script>
+
+</body>
+</html>
