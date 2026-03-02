@@ -110,7 +110,8 @@ h2 {
 }
 
 input[type="text"],
-input[type="date"] {
+input[type="date"],
+textarea {
     width: 100%;
     padding: 0.8rem 1rem;
     border: 1px solid var(--border-color);
@@ -121,7 +122,8 @@ input[type="date"] {
 }
 
 input[type="text"]:focus,
-input[type="date"]:focus {
+input[type="date"]:focus,
+textarea:focus {
     outline: none;
     border-color: var(--secondary-color);
     box-shadow: 0 0 0 3px rgba(0, 154, 166, 0.2);

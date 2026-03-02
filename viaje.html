@@ -118,9 +118,14 @@
                 <label>Enlace (URL)</label>
                 <input type="text" id="hotelLink" placeholder="https://booking.com/...">
             </div>
+            <div class="input-group">
+                <label>Descripción del Hotel / Reseñas</label>
+                <textarea id="hotelComments" rows="4" placeholder="Pega aquí la descripción del hotel para analizar..."></textarea>
+            </div>
             
             <h4>Valoración de Criterios (0 - 10)</h4>
             <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">Puntúa solo los criterios activos para este viaje.</p>
+            <button type="button" id="btnAnalyzeText" class="btn-accent" style="margin-bottom: 1rem; font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fas fa-robot"></i> Analizar Descripción</button>
             
             <div id="hotelRatingsInputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <!-- Inputs generados dinámicamente según la configuración -->

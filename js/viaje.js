@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hotelRatingsInputs = document.getElementById('hotelRatingsInputs');
     const modalTitle = document.getElementById('modalTitle');
     const btnSaveHotel = document.getElementById('btnSaveHotel');
+    const btnAnalyzeText = document.getElementById('btnAnalyzeText');
     
     // Elementos para editar viaje
     const btnEditTrip = document.getElementById('btnEditTrip');
@@ -265,6 +266,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         addHotelForm.reset();
     });
 
+    // --- ANALIZADOR DE TEXTO (SIN IA) ---
+    btnAnalyzeText.addEventListener('click', () => {
+        const textToAnalyze = document.getElementById('hotelComments').value.toLowerCase();
+        if (!textToAnalyze) {
+            alert('Pega primero una descripción en el campo de texto para poder analizarla.');
+            return;
+        }
+
+        // Reglas de análisis: qué palabras buscar y qué nota poner.
+        const analysisRules = [
+            { nameMatches: ['piscina'], keywords: ['piscina', 'pool'], score: 8 },
+            { nameMatches: ['gimnasio'], keywords: ['gimnasio', 'gym', 'fitness'], score: 8 },
+            { nameMatches: ['wifi', 'wi-fi', 'conectividad'], keywords: ['wi-fi', 'wifi'], score: 7, negative: ['de pago', 'suplemento', 'con cargo'], negativeScore: 3 },
+            { nameMatches: ['desayuno'], keywords: ['desayuno', 'breakfast'], score: 8, negative: ['de pago', 'suplemento', 'con cargo'], negativeScore: 4 },
+            { nameMatches: ['mascotas', 'pet-friendly'], keywords: ['mascotas', 'pet-friendly', 'se admiten animales'], score: 9 },
+            { nameMatches: ['parking', 'aparcamiento'], keywords: ['parking', 'aparcamiento', 'garaje'], score: 7 },
+            { nameMatches: ['restaurante'], keywords: ['restaurante'], score: 8 },
+            { nameMatches: ['bar'], keywords: ['bar'], score: 7 },
+            { nameMatches: ['accesibilidad', 'accesible'], keywords: ['accesible', 'silla de ruedas'], score: 9 },
+            { nameMatches: ['aire acondicionado'], keywords: ['aire acondicionado', 'a/c'], score: 9 },
+            { nameMatches: ['centro de negocios', 'coworking'], keywords: ['centro de negocios', 'business center'], score: 7 },
+            { nameMatches: ['servicio de habitaciones'], keywords: ['servicio de habitaciones', 'room service'], score: 7 },
+            { nameMatches: ['traslado aeropuerto'], keywords: ['traslado aeropuerto', 'airport shuttle'], score: 7 },
+        ];
+
+        // Iteramos sobre las características activas en este viaje
+        Object.keys(currentTripConfig).forEach(charId => {
+            const characteristic = currentTripConfig[charId];
+            const charNameLower = characteristic.name.toLowerCase();
+
+            // Buscamos una regla que coincida con el nombre de la característica
+            const rule = analysisRules.find(r => r.nameMatches.some(match => charNameLower.includes(match)));
+
+            if (rule) {
+                let score = 0;
+                let found = false;
+
+                // Comprobamos si alguna palabra clave positiva está en el texto
+                if (rule.keywords.some(kw => textToAnalyze.includes(kw))) {
+                    score = rule.score;
+                    found = true;
+
+                    // Si se encontró, comprobamos si hay modificadores negativos
+                    if (rule.negative && rule.negative.some(negKw => textToAnalyze.includes(negKw))) {
+                        score = rule.negativeScore;
+                    }
+                }
+
+                // Si se encontró una coincidencia, actualizamos el input
+                if (found) {
+                    const input = document.querySelector(`input[name="rating_${charId}"]`);
+                    if (input) {
+                        input.value = score;
+                    }
+                }
+            }
+        });
+        alert('Análisis completado. Revisa las puntuaciones sugeridas.');
+    });
+
     addHotelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(addHotelForm);
@@ -282,6 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: document.getElementById('hotelName').value,
             link: document.getElementById('hotelLink').value,
             price: parseFloat(document.getElementById('hotelPrice').value) || 0,
+            comments: document.getElementById('hotelComments').value,
             ratings: ratings,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -353,6 +415,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Generar detalle de puntos
             let detailsHtml = '<h4>Desglose de Puntos</h4><ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">';
             
+            // Mostrar comentarios si existen
+            if (hotel.comments) {
+                detailsHtml = `<div style="margin-bottom: 1rem; padding: 0.8rem; background-color: #f8f9fa; border-left: 4px solid var(--secondary-color); border-radius: 4px; font-size: 0.9rem;">
+                    <strong><i class="fas fa-sticky-note"></i> Notas:</strong> ${hotel.comments}
+                </div>` + detailsHtml;
+            }
+            
             // Añadir detalle del precio
             detailsHtml += `<li style="font-size: 0.9rem; border-bottom: 1px solid #eee; padding: 0.2rem 0; background-color: #fff3cd;">
                                 <strong>💰 Precio (${hotel.price}€):</strong> ${hotel.priceScore} pts
@@ -422,6 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('hotelName').value = hotel.name;
         document.getElementById('hotelPrice').value = hotel.price;
         document.getElementById('hotelLink').value = hotel.link || '';
+        document.getElementById('hotelComments').value = hotel.comments || '';
 
         // Generar inputs y rellenar valores
         renderRatingInputs();
