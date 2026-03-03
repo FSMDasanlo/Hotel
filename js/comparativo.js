@@ -82,10 +82,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             groupedByCategory[category].forEach(item => {
                 const li = document.createElement('li');
                 li.innerHTML = `
-                    <label>
-                        <input type="checkbox" data-char-id="${item.id}" ${item.active ? 'checked' : ''}>
-                        ${item.name} (x${item.weight})
-                    </label>
+                    <div class="criteria-filter-item">
+                        <label class="criteria-filter-label">
+                            <input type="checkbox" data-char-id="${item.id}" ${item.active ? 'checked' : ''}>
+                            <span>${item.name}</span>
+                        </label>
+                        <input type="number" class="criteria-weight-input" data-char-id="${item.id}" min="1" max="9" value="${item.weight}">
+                    </div>
                 `;
                 list.appendChild(li);
             });
@@ -100,6 +103,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (localTripConfig[charId]) {
                     localTripConfig[charId].active = e.target.checked;
                     updateRankingViews(); // Recalcular y renderizar ambas vistas
+                }
+            });
+        });
+
+        criteriaFilters.querySelectorAll('.criteria-weight-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const charId = e.target.dataset.charId;
+                const newWeight = parseInt(e.target.value, 10);
+
+                if (localTripConfig[charId] && newWeight >= 1 && newWeight <= 9) {
+                    localTripConfig[charId].weight = newWeight;
+                    updateRankingViews();
                 }
             });
         });
@@ -188,7 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <thead>
                     <tr>
                         <th class="sticky-header-col"></th> <!-- Empty for category/char names -->
-                        ${rankedHotels.map(h => `<th><div>${h.name}<br><small class="header-price-display">${h.price} €</small></div></th>`).join('')}
+                        ${rankedHotels.map(h => `<th><div><span>${h.name}</span><small class="header-price-display">${h.price} €</small></div></th>`).join('')}
                     </tr>
                     <tr>
                         <th class="sticky-header-col">Total Puntos</th>

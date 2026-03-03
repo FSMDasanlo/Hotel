@@ -499,11 +499,28 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     margin-bottom: 0.5rem;
 }
 
-.criteria-filter-list label {
+.criteria-filter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.criteria-filter-label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     font-size: 0.9rem;
+    flex-grow: 1; /* Ocupa el espacio disponible */
+}
+
+.criteria-weight-input {
+    width: 50px;
+    padding: 0.4rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: var(--font-family);
 }
 
 #filters-sidebar summary {
@@ -559,8 +576,10 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
 .detailed-comparison-table thead tr:first-child th > div {
     height: 4.5em; /* Approx 3 lines */
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    text-align: center;
 }
 
 .detailed-comparison-table thead tr:first-child th > div .header-price-display {
