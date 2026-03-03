@@ -35,6 +35,12 @@ body {
     padding: 0 1.5rem;
 }
 
+.container-fluid {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
 /* --- Header y Navegación --- */
 header {
     display: flex;
@@ -129,6 +135,12 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgba(0, 154, 166, 0.2);
 }
 
+.rating-defaulted {
+    background-color: #fff3cd; /* Amarillo claro */
+    border-color: #ffeeba;
+}
+
+
 .form-row {
     display: flex;
     gap: 1.5rem;
@@ -154,6 +166,26 @@ button {
 }
 
 button:hover {
+    transform: translateY(-2px);
+}
+
+/* Estilos para enlaces que parecen botones */
+a.btn-primary, a.btn-secondary, a.btn-accent, a.btn-danger {
+    font-family: var(--font-family);
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hover {
     transform: translateY(-2px);
 }
 
@@ -203,6 +235,7 @@ button:hover {
 /* --- Lista de Viajes (Items) --- */
 .trip-item {
     border: 1px solid var(--border-color);
+    border-left-width: 6px;
     border-radius: var(--border-radius);
     padding: 1.2rem;
     margin-bottom: 1rem;
@@ -211,6 +244,7 @@ button:hover {
     align-items: center;
     gap: 1rem;
     background-color: white;
+    transition: border-left-color 0.3s ease;
 }
 
 .trip-info {
@@ -434,4 +468,232 @@ button:hover {
 
 .hotel-details.active {
     display: block;
+}
+
+/* --- Vista Comparativa --- */
+.container-fluid {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+.comparative-view {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+#filters-sidebar {
+    position: sticky;
+    top: 2rem;
+}
+
+.criteria-filter-list {
+    list-style: none;
+    padding-left: 1rem;
+    margin-top: 0.5rem;
+}
+
+.criteria-filter-list li {
+    margin-bottom: 0.5rem;
+}
+
+.criteria-filter-list label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+#filters-sidebar summary {
+    cursor: pointer;
+    padding: 0.2rem;
+}
+
+/* Hotel Winner Styling */
+.hotel-card.hotel-winner {
+    border: 2px solid var(--accent-color); /* Gold border */
+    box-shadow: 0 0 15px rgba(254, 193, 96, 0.6); /* Gold glow */
+}
+
+.hotel-card.hotel-winner .hotel-position {
+    color: var(--accent-color); /* Gold number */
+}
+
+/* Detailed Comparison Table */
+.detailed-comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    background-color: var(--card-bg-color);
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    overflow: hidden; /* For rounded corners */
+}
+
+.detailed-comparison-table th,
+.detailed-comparison-table td {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.detailed-comparison-table thead th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    position: sticky;
+    top: 0; /* Make header sticky */
+    z-index: 10;
+}
+
+.detailed-comparison-table thead tr:first-child th {
+    border-bottom: none; /* No double border between header rows */
+    vertical-align: bottom;
+    padding: 0.5rem;
+    min-width: 140px;
+    max-width: 180px;
+}
+
+.detailed-comparison-table thead tr:first-child th > div {
+    height: 4.5em; /* Approx 3 lines */
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.detailed-comparison-table thead tr:first-child th > div .header-price-display {
+    font-weight: normal;
+    opacity: 0.8;
+    font-size: 0.9em;
+}
+
+.detailed-comparison-table thead tr:last-child th {
+    background-color: var(--secondary-color);
+    color: white;
+    font-size: 1.1rem;
+}
+
+.detailed-comparison-table tbody tr:nth-child(even) {
+    background-color: #f8f9fa; /* Zebra striping */
+}
+
+.detailed-comparison-table .price-score-row {
+    background-color: #fff3cd;
+}
+
+.detailed-comparison-table .price-score-row td {
+    color: #856404;
+    font-size: 0.95rem;
+}
+
+.detailed-comparison-table .price-score-row .sticky-header-col {
+    font-weight: 600;
+}
+
+.detailed-comparison-table .category-row {
+    background-color: #eef2f5;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.detailed-comparison-table .category-row:hover {
+    background-color: #e2e6ea;
+}
+
+.detailed-comparison-table .category-toggle {
+    text-align: left;
+    padding-left: 1.5rem;
+}
+
+.detailed-comparison-table .category-chevron {
+    margin-right: 0.5rem;
+    transition: transform 0.2s;
+}
+
+.detailed-comparison-table .fa-chevron-up {
+    transform: rotate(180deg);
+}
+
+.detailed-comparison-table .hidden-char-row {
+    display: none;
+}
+
+.detailed-comparison-table .sticky-header-col {
+    position: sticky;
+    left: 0;
+    background-color: inherit; /* To match row background */
+    z-index: 5;
+}
+
+.detailed-comparison-table .char-name-cell {
+    text-align: left;
+    padding-left: 2.5rem; /* Indent characteristic names */
+}
+
+@media (max-width: 992px) {
+    .comparative-view {
+        grid-template-columns: 1fr;
+    }
+    #filters-sidebar {
+        position: static; /* Remove sticky on smaller screens */
+    }
+    .detailed-comparison-table th,
+    .detailed-comparison-table td {
+        padding: 0.8rem 0.5rem; /* Smaller padding for mobile */
+        font-size: 0.9rem;
+    }
+}
+
+/* Bar Chart */
+#chartContainer {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.chart-wrapper {
+    margin-top: 1.5rem;
+}
+
+.chart-bar-item {
+    display: grid;
+    grid-template-columns: 200px 1fr 80px;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.chart-label {
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+.chart-bar-container {
+    background-color: #e9ecef;
+    border-radius: 4px;
+    height: 28px;
+    overflow: hidden;
+}
+
+.chart-bar {
+    background-color: var(--secondary-color);
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease-out;
+}
+
+.chart-bar-item:first-child .chart-bar {
+    background-color: var(--accent-color);
+}
+
+.chart-value {
+    font-weight: 700;
+    font-size: 1rem;
+    text-align: left;
 }

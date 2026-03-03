@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // --- Enlace a Comparativo ---
+    const comparativoLink = document.getElementById('comparativoLink');
+    if (comparativoLink) {
+        comparativoLink.href = `comparativo.html?id=${tripId}`;
+    }
+
     // --- REFERENCIAS FIREBASE ---
     const tripRef = db.collection('trips').doc(tripId);
     const hotelsCollection = tripRef.collection('hotels');
@@ -20,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- ELEMENTOS DOM ---
     const tripTitle = document.getElementById('tripTitle');
     const tripDetails = document.getElementById('tripDetails');
+    const tripStats = document.getElementById('tripStats');
     const configSection = document.getElementById('configSection');
     const toggleConfigBtn = document.getElementById('toggleConfigBtn');
     const criteriaList = document.getElementById('criteriaList');
@@ -258,6 +265,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         addHotelModal.style.display = 'block';
         btnAddHotel.style.display = 'none';
+        
+        // Scroll suave hacia el formulario
+        addHotelModal.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     cancelAddHotel.addEventListener('click', () => {
@@ -272,7 +282,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!textToAnalyze) {
             alert('Pega primero una descripción en el campo de texto para poder analizarla.');
             return;
-        }
+        } 
+
+        // 1. Resetear inputs y obtenerlos
+        const allRatingInputs = hotelRatingsInputs.querySelectorAll('input[type="number"]');
+        allRatingInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('rating-defaulted');
+        });
 
         // Reglas de análisis: qué palabras buscar y qué nota poner.
         const analysisRules = [
@@ -291,6 +308,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             { nameMatches: ['traslado aeropuerto'], keywords: ['traslado aeropuerto', 'airport shuttle'], score: 7 },
         ];
 
+        const scoredInputs = new Set();
+
         // Iteramos sobre las características activas en este viaje
         Object.keys(currentTripConfig).forEach(charId => {
             const characteristic = currentTripConfig[charId];
@@ -300,29 +319,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             const rule = analysisRules.find(r => r.nameMatches.some(match => charNameLower.includes(match)));
 
             if (rule) {
-                let score = 0;
-                let found = false;
-
                 // Comprobamos si alguna palabra clave positiva está en el texto
                 if (rule.keywords.some(kw => textToAnalyze.includes(kw))) {
-                    score = rule.score;
-                    found = true;
+                    let score = rule.score;
 
                     // Si se encontró, comprobamos si hay modificadores negativos
                     if (rule.negative && rule.negative.some(negKw => textToAnalyze.includes(negKw))) {
                         score = rule.negativeScore;
                     }
-                }
 
-                // Si se encontró una coincidencia, actualizamos el input
-                if (found) {
                     const input = document.querySelector(`input[name="rating_${charId}"]`);
                     if (input) {
                         input.value = score;
+                        scoredInputs.add(input);
                     }
                 }
             }
         });
+
+        // 3. Para los no puntuados, poner 1 y estilo.
+        allRatingInputs.forEach(input => {
+            if (!scoredInputs.has(input)) {
+                input.value = 1;
+                input.classList.add('rating-defaulted');
+            }
+        });
+
         alert('Análisis completado. Revisa las puntuaciones sugeridas.');
     });
 
@@ -404,13 +426,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         hotelsList.innerHTML = '';
         
         if (rankedHotels.length === 0) {
+            if (tripStats) tripStats.innerHTML = '';
             hotelsList.innerHTML = '<p style="text-align: center;">No hay hoteles añadidos aún.</p>';
             return;
+        }
+
+        // Actualizar Dashboard (Resumen)
+        if (tripStats) {
+            const totalHotels = rankedHotels.length;
+            const avgPrice = (rankedHotels.reduce((sum, h) => sum + (h.price || 0), 0) / totalHotels).toFixed(0);
+            tripStats.innerHTML = `
+                <div><i class="fas fa-hotel" style="color: var(--secondary-color);"></i> <strong>${totalHotels}</strong> Hoteles</div>
+                <div><i class="fas fa-tag" style="color: var(--secondary-color);"></i> <strong>${avgPrice} €</strong> Precio Medio</div>
+                <button id="btnDownloadPDF" class="btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.85rem; margin-left: auto; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-file-pdf"></i> Descargar PDF</button>
+            `;
+            
+            document.getElementById('btnDownloadPDF').addEventListener('click', generatePDF);
         }
 
         rankedHotels.forEach((hotel, index) => {
             const card = document.createElement('div');
             card.className = 'hotel-card';
+            if (index === 0) {
+                card.classList.add('hotel-winner');
+            }
             
             // Generar detalle de puntos
             let detailsHtml = '<h4>Desglose de Puntos</h4><ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">';
@@ -507,5 +546,90 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         addHotelModal.style.display = 'block';
         btnAddHotel.style.display = 'none';
+    }
+
+    // --- GENERAR PDF ---
+    async function generatePDF() {
+        const btn = document.getElementById('btnDownloadPDF');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+        btn.disabled = true;
+
+        // Crear contenedor temporal para el PDF
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.padding = '20px';
+        pdfContainer.style.fontFamily = 'Poppins, sans-serif';
+        pdfContainer.style.color = '#333';
+        pdfContainer.style.background = 'white';
+
+        // 1. Header (Logo + Título + Stats)
+        const headerDiv = document.createElement('div');
+        headerDiv.style.marginBottom = '20px';
+        headerDiv.style.borderBottom = '2px solid var(--secondary-color)';
+        headerDiv.style.paddingBottom = '10px';
+        
+        const title = document.createElement('h1');
+        title.textContent = tripTitle.textContent;
+        title.style.color = 'var(--primary-color)';
+        headerDiv.appendChild(title);
+
+        const details = document.createElement('p');
+        details.textContent = tripDetails.textContent;
+        details.style.color = '#666';
+        headerDiv.appendChild(details);
+
+        // Clonar stats pero quitar el botón de PDF
+        const statsClone = tripStats.cloneNode(true);
+        const pdfBtn = statsClone.querySelector('#btnDownloadPDF');
+        if(pdfBtn) pdfBtn.remove();
+        statsClone.style.marginTop = '10px';
+        headerDiv.appendChild(statsClone);
+
+        pdfContainer.appendChild(headerDiv);
+
+        // 2. Ranking de Hoteles
+        const rankingDiv = document.createElement('div');
+        const hotels = hotelsList.querySelectorAll('.hotel-card');
+        
+        hotels.forEach(card => {
+            const cardClone = card.cloneNode(true);
+            cardClone.style.marginBottom = '15px';
+            cardClone.style.border = '1px solid #ddd';
+            cardClone.style.pageBreakInside = 'avoid'; // Evitar cortes de página en mitad de un hotel
+
+            // Limpiar interfaz (quitar botones de acción y chevrons)
+            const actions = cardClone.querySelector('.hotel-actions');
+            if(actions) actions.remove();
+            const chevron = cardClone.querySelector('.fa-chevron-down');
+            if(chevron && chevron.parentNode) chevron.parentNode.remove();
+
+            // Forzar que los detalles estén visibles
+            const details = cardClone.querySelector('.hotel-details');
+            details.style.display = 'block';
+            details.style.borderTop = '1px solid #eee';
+
+            rankingDiv.appendChild(cardClone);
+        });
+
+        pdfContainer.appendChild(rankingDiv);
+
+        // Configuración y generación
+        const opt = {
+            margin:       10,
+            filename:     `Roomly_${currentTripData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        try {
+            await html2pdf().set(opt).from(pdfContainer).save();
+        } catch (error) {
+            console.error("Error PDF:", error);
+            alert("Error al generar el PDF.");
+        } finally {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }
     }
 });

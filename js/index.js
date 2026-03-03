@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             endDate: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('tripEndDate').value)),
             rooms: parseInt(document.getElementById('tripRooms').value),
             people: parseInt(document.getElementById('tripPeople').value),
+            themeColor: document.getElementById('tripThemeColor').value,
             createdAt: firebase.firestore.FieldValue.serverTimestamp() // Usar el timestamp del servidor
         };
 
@@ -86,6 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 tripElement.classList.add('trip-item'); // Necesitaremos estilos para esta clase
                 tripElement.setAttribute('data-id', tripId);
 
+                if (trip.themeColor) {
+                    tripElement.style.borderLeftColor = trip.themeColor;
+                }
+
                 tripElement.innerHTML = `
                     <div class="trip-info">
                         <div class="trip-row-main">
@@ -97,14 +102,37 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span><i class="fas fa-bed"></i> ${trip.rooms} hab. / <i class="fas fa-users"></i> ${trip.people} pers.</span>
                         </div>
                     </div>
-                    <button class="btn-primary btn-open-trip" onclick="window.location.href='viaje.html?id=${tripId}'">Abrir Viaje</button>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
+                        <button class="btn-primary btn-open-trip" onclick="window.location.href='viaje.html?id=${tripId}'">Abrir Viaje</button>
+                        <button class="btn-secondary btn-duplicate-trip" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fas fa-copy"></i> Duplicar</button>
+                    </div>
                 `;
+                tripElement.querySelector('.btn-duplicate-trip').addEventListener('click', () => duplicateTrip(trip));
                 tripsList.appendChild(tripElement);
             });
         }, error => {
             console.error("Error al cargar los viajes: ", error);
             tripsList.innerHTML = '<p>Error al cargar los viajes. Revisa la consola y las reglas de seguridad de Firestore.</p>';
         });
+    }
+
+    // Función para duplicar un viaje existente
+    async function duplicateTrip(originalTrip) {
+        const newName = prompt("Nombre para el nuevo viaje (copia):", `Copia de ${originalTrip.name}`);
+        if (newName === null) return; // Cancelado
+
+        const newTripData = {
+            ...originalTrip,
+            name: newName,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            await tripsCollection.add(newTripData);
+        } catch (error) {
+            console.error("Error al duplicar el viaje: ", error);
+            alert('Hubo un error al duplicar el viaje.');
+        }
     }
 
     // Carga inicial de los viajes al cargar la página

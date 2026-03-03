@@ -14,21 +14,23 @@
     <header>
         <a href="index.html"><img src="img/logo_icon.png" alt="Roomly Logo" class="logo"></a>
         <nav>
-            <a href="index.html">Volver a Viajes</a>
+            <a href="index.html"><i class="fas fa-arrow-left"></i> Volver a Viajes</a>
         </nav>
     </header>
 
     <!-- Cabecera del Viaje -->
     <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h2 id="tripTitle">Cargando viaje...</h2>
-                <p id="tripDetails" style="color: var(--text-light-color); margin-top: 0.5rem;"></p>
-            </div>
-            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
-                <button id="btnEditTrip" class="btn-secondary" style="font-size: 0.9rem;"><i class="fas fa-pencil-alt"></i> Editar</button>
-                <button id="btnDeleteTrip" class="btn-danger" title="Eliminar Viaje" style="font-size: 0.9rem;"><i class="fas fa-trash-alt"></i></button>
-            </div>
+        <div style="margin-bottom: 1.5rem;">
+            <h1 id="tripTitle" style="font-size: 2.2rem; color: var(--primary-color); margin-bottom: 0.5rem; line-height: 1.2;">Cargando viaje...</h1>
+            <p id="tripDetails" style="color: var(--text-light-color); font-size: 1.1rem;"></p>
+            <div id="tripStats" style="display: flex; gap: 2rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.95rem; color: var(--text-color);"></div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <button id="btnAddHotel" class="btn-primary"><i class="fas fa-plus"></i> Añadir Hotel</button>
+            <a id="comparativoLink" href="#" class="btn-secondary"><i class="fas fa-chart-bar"></i> Comparativo</a>
+            <button id="btnEditTrip" class="btn-secondary"><i class="fas fa-pencil-alt"></i> Editar</button>
+            <button id="btnDeleteTrip" class="btn-danger" title="Eliminar Viaje"><i class="fas fa-trash-alt"></i></button>
         </div>
     </div>
 
@@ -71,37 +73,6 @@
         </form>
     </div>
 
-    <!-- Configuración de Criterios (Ponderación) -->
-    <div class="card">
-        <div class="section-header">
-            <h3><i class="fas fa-sliders-h"></i> Configuración de Criterios</h3>
-            <button id="toggleConfigBtn" class="btn-secondary" style="font-size: 0.9rem;">Mostrar/Ocultar</button>
-        </div>
-        
-        <div id="configSection" class="config-section" style="display:none;">
-            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Selecciona las características importantes para este viaje y asigna un peso del 1 (poco importante) al 9 (muy importante).</p>
-            <form id="criteriaForm">
-                <div id="criteriaList">
-                    <!-- Tabla generada dinámicamente -->
-                </div>
-                <div style="margin-top: 1.5rem; text-align: right;">
-                    <button type="submit" class="btn-primary">Guardar Configuración</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Ranking de Hoteles -->
-    <div class="card">
-        <div class="section-header">
-            <h2>Ranking de Hoteles</h2>
-            <button id="btnAddHotel" class="btn-primary"><i class="fas fa-plus"></i> Añadir Hotel</button>
-        </div>
-        <div id="hotelsList" class="hotel-ranking">
-            <p style="text-align: center;">No hay hoteles añadidos aún.</p>
-        </div>
-    </div>
-
     <!-- Modal / Formulario para añadir Hotel (Oculto por defecto) -->
     <div id="addHotelModal" class="card" style="display: none; border: 2px solid var(--primary-color);">
         <h3 id="modalTitle">Añadir Nuevo Hotel</h3>
@@ -137,9 +108,41 @@
             </div>
         </form>
     </div>
+
+    <!-- Configuración de Criterios (Ponderación) -->
+    <div class="card">
+        <div class="section-header">
+            <h3><i class="fas fa-sliders-h"></i> Configuración de Criterios</h3>
+            <button id="toggleConfigBtn" class="btn-secondary" style="font-size: 0.9rem;">Mostrar/Ocultar</button>
+        </div>
+        
+        <div id="configSection" class="config-section" style="display:none;">
+            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Selecciona las características importantes para este viaje y asigna un peso del 1 (poco importante) al 9 (muy importante).</p>
+            <form id="criteriaForm">
+                <div id="criteriaList">
+                    <!-- Tabla generada dinámicamente -->
+                </div>
+                <div style="margin-top: 1.5rem; text-align: right;">
+                    <button type="submit" class="btn-primary">Guardar Configuración</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ranking de Hoteles -->
+    <div class="card">
+        <div class="section-header">
+            <h2>Ranking de Hoteles</h2>
+        </div>
+        <div id="hotelsList" class="hotel-ranking">
+            <p style="text-align: center;">No hay hoteles añadidos aún.</p>
+        </div>
+    </div>
+
 </div>
 
 <!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
