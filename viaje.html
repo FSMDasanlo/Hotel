@@ -87,7 +87,10 @@
             </div>
             <div class="input-group">
                 <label>Enlace (URL)</label>
-                <input type="text" id="hotelLink" placeholder="https://booking.com/...">
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="hotelLink" placeholder="https://booking.com/..." style="flex-grow: 1;">
+                    <button type="button" id="btnFetchFromUrl" class="btn-secondary" title="Cargar descripción desde URL" style="flex-shrink: 0; padding: 0.8rem;"><i class="fas fa-cloud-download-alt"></i></button>
+                </div>
             </div>
             <div class="input-group">
                 <label>Descripción del Hotel / Reseñas</label>

@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnShowDetailedView = document.getElementById('btnShowDetailedView');
     const detailedTableContainer = document.getElementById('detailedTableContainer');
     const chartContainer = document.getElementById('chartContainer');
+    const btnSaveChanges = document.getElementById('btnSaveChanges');
     document.getElementById('backToTripLink').href = `viaje.html?id=${tripId}`;
 
     // --- ESTADO GLOBAL ---
@@ -336,5 +337,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             : '<i class="fas fa-table"></i> Ver Tabla Detallada';
         btnShowDetailedView.title = showDetailedTable ? 'Ver ranking simple' : 'Ver tabla detallada';
         updateRankingViews();
+    });
+
+    btnSaveChanges.addEventListener('click', async () => {
+        const confirmation = confirm("¿Quieres guardar los cambios en los pesos y criterios activos en la configuración principal del viaje?");
+        if (!confirmation) {
+            return;
+        }
+
+        btnSaveChanges.disabled = true;
+        btnSaveChanges.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+        const newConfigToSave = {};
+        Object.keys(localTripConfig).forEach(charId => {
+            const criterion = localTripConfig[charId];
+            if (criterion.active) {
+                // Solo guardamos los criterios activos para ser consistentes con viaje.js
+                newConfigToSave[charId] = {
+                    active: true,
+                    weight: criterion.weight,
+                    name: criterion.name,
+                    category: criterion.category
+                };
+            }
+        });
+
+        try {
+            await tripRef.update({ criteriaConfig: newConfigToSave });
+            alert("¡Configuración guardada con éxito! Los cambios se reflejarán en la página principal del viaje.");
+        } catch (error) {
+            console.error("Error al guardar la configuración:", error);
+            alert("Hubo un error al guardar los cambios. Por favor, revisa la consola.");
+        } finally {
+            btnSaveChanges.disabled = false;
+            btnSaveChanges.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+        }
     });
 });

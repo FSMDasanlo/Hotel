@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalTitle = document.getElementById('modalTitle');
     const btnSaveHotel = document.getElementById('btnSaveHotel');
     const btnAnalyzeText = document.getElementById('btnAnalyzeText');
+    const btnFetchFromUrl = document.getElementById('btnFetchFromUrl');
     
     // Elementos para editar viaje
     const btnEditTrip = document.getElementById('btnEditTrip');
@@ -346,6 +347,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         alert('Análisis completado. Revisa las puntuaciones sugeridas.');
+    });
+
+    btnFetchFromUrl.addEventListener('click', async () => {
+        const hotelLinkInput = document.getElementById('hotelLink');
+        const url = hotelLinkInput.value;
+        if (!url || !url.startsWith('http')) {
+            alert('Por favor, introduce una URL válida en el campo "Enlace".');
+            return;
+        }
+
+        // Mostrar estado de carga
+        btnFetchFromUrl.disabled = true;
+        btnFetchFromUrl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const hotelCommentsTextarea = document.getElementById('hotelComments');
+
+        try {
+            // Llama a la Cloud Function. Asegúrate de que la región coincide.
+            const functions = firebase.app().functions('europe-west1');
+            const scrapeUrl = functions.httpsCallable('scrapeUrl');
+            const result = await scrapeUrl({ url: url });
+
+            if (result.data && result.data.text) {
+                hotelCommentsTextarea.value = result.data.text;
+                alert('Descripción cargada con éxito. Ahora puedes hacer clic en "Analizar Descripción".');
+            } else {
+                throw new Error(result.data.error || 'La función no devolvió texto.');
+            }
+
+        } catch (error) {
+            console.error("Error al invocar la Cloud Function de scraping:", error);
+            alert(`Hubo un error al cargar los datos de la URL: ${error.message}`);
+            hotelCommentsTextarea.value = `Error al cargar desde ${url}. Detalles: ${error.message}`;
+        } finally {
+            // Restaurar el botón
+            btnFetchFromUrl.disabled = false;
+            btnFetchFromUrl.innerHTML = '<i class="fas fa-cloud-download-alt"></i>';
+        }
     });
 
     addHotelForm.addEventListener('submit', async (e) => {
