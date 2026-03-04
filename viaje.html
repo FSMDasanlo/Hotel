@@ -11,66 +11,28 @@
 <body>
 
 <div class="container">
-    <header>
-        <a href="index.html"><img src="img/logo_icon.png" alt="Roomly Logo" class="logo"></a>
-        <nav>
-            <a href="index.html"><i class="fas fa-arrow-left"></i> Volver a Viajes</a>
-        </nav>
-    </header>
-
     <!-- Cabecera del Viaje -->
     <div class="card">
-        <div style="margin-bottom: 1.5rem;">
-            <h1 id="tripTitle" style="font-size: 2.2rem; color: var(--primary-color); margin-bottom: 0.5rem; line-height: 1.2;">Cargando viaje...</h1>
-            <p id="tripDetails" style="color: var(--text-light-color); font-size: 1.1rem;"></p>
-            <div id="tripStats" style="display: flex; gap: 2rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.95rem; color: var(--text-color);"></div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <a href="index.html">
+                    <img src="img/logo_icon.png" alt="Roomly Logo" style="height: 70px; width: auto; display: block;">
+                </a>
+                <div>
+                    <h1 id="tripTitle" style="font-size: 2.2rem; color: var(--primary-color); margin-bottom: 0.5rem; line-height: 1.2;">Cargando viaje...</h1>
+                    <p id="tripDetails" style="color: var(--text-light-color); font-size: 1.1rem;"></p>
+                </div>
+            </div>
         </div>
+        <div id="tripStats" style="display: flex; gap: 2rem; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.95rem; color: var(--text-color);"></div>
         
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <button id="btnAddHotel" class="btn-primary"><i class="fas fa-plus"></i> Añadir Hotel</button>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
+            <button id="btnAddHotel" class="btn-secondary"><i class="fas fa-plus"></i> Hotel</button>
             <a id="comparativoLink" href="#" class="btn-secondary"><i class="fas fa-chart-bar"></i> Comparativo</a>
-            <button id="btnEditTrip" class="btn-secondary"><i class="fas fa-pencil-alt"></i> Editar</button>
-            <button id="btnDeleteTrip" class="btn-danger" title="Eliminar Viaje"><i class="fas fa-trash-alt"></i></button>
+            <button id="btnConclusion" class="btn-secondary"><i class="fas fa-brain"></i> Conclusión IA</button>
+            <button id="btnShowConfig" class="btn-secondary"><i class="fas fa-sliders-h"></i> Criterios</button>
+            <button id="btnDownloadPDF" class="btn-secondary" style="display: none; padding-left: 1rem; padding-right: 1rem;"><i class="fas fa-file-pdf"></i> PDF</button>
         </div>
-    </div>
-
-    <!-- Formulario para Editar Viaje (Oculto por defecto) -->
-    <div id="editTripModal" class="card" style="display: none; border: 2px solid var(--secondary-color);">
-        <h3>Editar Datos del Viaje</h3>
-        <form id="editTripForm">
-            <div class="input-group">
-                <label for="editTripName">Nombre del Viaje</label>
-                <input type="text" id="editTripName" required>
-            </div>
-            <div class="input-group">
-                <label for="editTripCity">Ciudad (País)</label>
-                <input type="text" id="editTripCity" required>
-            </div>
-            <div class="form-row">
-                <div class="input-group">
-                    <label for="editTripStartDate">Fecha de Inicio</label>
-                    <input type="date" id="editTripStartDate" required>
-                </div>
-                <div class="input-group">
-                    <label for="editTripEndDate">Fecha de Fin</label>
-                    <input type="date" id="editTripEndDate" required>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="input-group">
-                    <label for="editTripRooms">Nº de Habitaciones</label>
-                    <input type="number" id="editTripRooms" min="1" required>
-                </div>
-                <div class="input-group">
-                    <label for="editTripPeople">Nº de Personas</label>
-                    <input type="number" id="editTripPeople" min="1" required>
-                </div>
-            </div>
-            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                <button type="submit" class="btn-primary">Guardar Cambios</button>
-                <button type="button" id="cancelEditTrip" class="btn-secondary" style="background-color: #6c757d;">Cancelar</button>
-            </div>
-        </form>
     </div>
 
     <!-- Modal / Formulario para añadir Hotel (Oculto por defecto) -->
@@ -89,7 +51,7 @@
                 <label>Enlace (URL)</label>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="text" id="hotelLink" placeholder="https://booking.com/..." style="flex-grow: 1;">
-                    <button type="button" id="btnFetchFromUrl" class="btn-secondary" title="Cargar descripción desde URL" style="flex-shrink: 0; padding: 0.8rem;"><i class="fas fa-cloud-download-alt"></i></button>
+                    <button type="button" id="btnOpenUrl" class="btn-secondary" title="Abrir enlace en una nueva pestaña" style="flex-shrink: 0; padding: 0.8rem;"><i class="fas fa-external-link-alt"></i></button>
                 </div>
             </div>
             <div class="input-group">
@@ -112,24 +74,19 @@
         </form>
     </div>
 
-    <!-- Configuración de Criterios (Ponderación) -->
-    <div class="card">
-        <div class="section-header">
-            <h3><i class="fas fa-sliders-h"></i> Configuración de Criterios</h3>
-            <button id="toggleConfigBtn" class="btn-secondary" style="font-size: 0.9rem;">Mostrar/Ocultar</button>
-        </div>
-        
-        <div id="configSection" class="config-section" style="display:none;">
-            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Selecciona las características importantes para este viaje y asigna un peso del 1 (poco importante) al 9 (muy importante).</p>
-            <form id="criteriaForm">
-                <div id="criteriaList">
-                    <!-- Tabla generada dinámicamente -->
-                </div>
-                <div style="margin-top: 1.5rem; text-align: right;">
-                    <button type="submit" class="btn-primary">Guardar Configuración</button>
-                </div>
-            </form>
-        </div>
+    <!-- Configuración de Criterios (Ponderación) - Ahora es un modal -->
+    <div id="configModal" class="card" style="display: none; border: 2px solid var(--secondary-color);">
+        <h3><i class="fas fa-sliders-h"></i> Configuración de Criterios</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 1rem; margin-top: 1rem;">Selecciona las características importantes para este viaje y asigna un peso del 1 (poco importante) al 9 (muy importante).</p>
+        <form id="criteriaForm">
+            <div id="criteriaList">
+                <!-- Tabla generada dinámicamente -->
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button type="submit" class="btn-primary">Guardar Configuración</button>
+                <button type="button" id="cancelConfig" class="btn-secondary" style="background-color: #6c757d;">Cancelar</button>
+            </div>
+        </form>
     </div>
 
     <!-- Ranking de Hoteles -->
@@ -142,6 +99,19 @@
         </div>
     </div>
 
+</div>
+
+<!-- Modal para Conclusión IA -->
+<div id="conclusionModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content card">
+        <div class="modal-header">
+            <h3 id="conclusionModalTitle">Análisis y Conclusión</h3>
+            <button id="closeConclusionModal" class="close-button">&times;</button>
+        </div>
+        <div id="conclusionModalBody">
+            <!-- Contenido generado por JS -->
+        </div>
+    </div>
 </div>
 
 <!-- Scripts -->

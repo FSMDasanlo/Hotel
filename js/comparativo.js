@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // --- CONFIGURAR ENLACE VOLVER ---
+    const backToTripLink = document.getElementById('backToTripLink');
+    if (backToTripLink) {
+        backToTripLink.href = `viaje.html?id=${tripId}`;
+    }
+
     // --- REFERENCIAS FIREBASE ---
     const tripRef = db.collection('trips').doc(tripId);
     const hotelsCollection = tripRef.collection('hotels');
@@ -25,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const detailedTableContainer = document.getElementById('detailedTableContainer');
     const chartContainer = document.getElementById('chartContainer');
     const btnSaveChanges = document.getElementById('btnSaveChanges');
-    document.getElementById('backToTripLink').href = `viaje.html?id=${tripId}`;
 
     // --- ESTADO GLOBAL ---
     let localTripConfig = {};

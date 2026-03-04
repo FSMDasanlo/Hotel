@@ -43,14 +43,13 @@ body {
 
 /* --- Header y Navegación --- */
 header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
     margin-bottom: 2.5rem;
+    text-align: center;
 }
 
 header .logo {
-    height: 120px;
+    height: 140px;
     width: auto;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
     transition: transform 0.3s ease;
@@ -285,6 +284,19 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     color: var(--text-light-color);
     font-size: 0.9rem;
     flex-wrap: wrap;
+}
+
+.trip-item .trip-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.trip-item .btn-icon {
+    padding: 0.8rem;
+    line-height: 1;
+    width: 44px; /* to make it square-ish */
+    height: 44px;
 }
 
 .trip-item .btn-open-trip {
@@ -722,4 +734,50 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     font-weight: 700;
     font-size: 1rem;
     text-align: left;
+}
+
+/* --- Modal Genérico --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-content {
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-light-color);
+    cursor: pointer;
+    line-height: 1;
 }

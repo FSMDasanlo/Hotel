@@ -1,141 +1,179 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- ELEMENTOS DEL DOM ---
-    // La variable `db` viene de `firebase-config.js`
+    const tripsList = document.getElementById('tripsList');
+    const createTripCard = document.getElementById('createTripCard');
+    const showCreateTripBtn = document.getElementById('showCreateTripBtn');
+    const createTripForm = document.getElementById('createTripForm');
+    const editTripModal = document.getElementById('editTripModal');
+    const editTripForm = document.getElementById('editTripForm');
+    const cancelEditTrip = document.getElementById('cancelEditTrip');
+
+    // --- REFERENCIA A FIREBASE ---
     const tripsCollection = db.collection('trips');
 
-    const showCreateTripBtn = document.getElementById('showCreateTripBtn');
-    const createTripCard = document.getElementById('createTripCard');
-    const createTripForm = document.getElementById('createTripForm');
-    const tripsList = document.getElementById('tripsList');
+    // --- ESTADO ---
+    let editingTripId = null;
 
     // --- LÓGICA DE LA UI ---
 
-    // Mostrar/ocultar el formulario para crear un nuevo viaje
+    // Mostrar/ocultar el formulario de creación
     showCreateTripBtn.addEventListener('click', () => {
-        const isVisible = createTripCard.style.display === 'block';
-        createTripCard.style.display = isVisible ? 'none' : 'block';
-        showCreateTripBtn.innerHTML = isVisible 
-            ? '<i class="fas fa-plus"></i> Nuevo Viaje' 
-            : '<i class="fas fa-times"></i> Cancelar';
+        const isHidden = createTripCard.style.display === 'none';
+        createTripCard.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            createTripCard.scrollIntoView({ behavior: 'smooth' });
+        }
     });
 
     // Manejar el envío del formulario para crear un viaje
-    createTripForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        
+    createTripForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
         const tripData = {
             name: document.getElementById('tripName').value,
             city: document.getElementById('tripCity').value,
-            // Guardar fechas como Timestamps de Firestore para poder ordenarlas correctamente
             startDate: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('tripStartDate').value)),
             endDate: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('tripEndDate').value)),
             rooms: parseInt(document.getElementById('tripRooms').value),
             people: parseInt(document.getElementById('tripPeople').value),
             themeColor: document.getElementById('tripThemeColor').value,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp() // Usar el timestamp del servidor
-        };
-
-        console.log('Nuevo viaje a crear:', tripData);
-        
-        try {
-            await tripsCollection.add(tripData);
-            console.log('Viaje creado con éxito');
-            createTripForm.reset();
-            createTripCard.style.display = 'none';
-            showCreateTripBtn.innerHTML = '<i class="fas fa-plus"></i> Nuevo Viaje';
-            // La lista se actualizará automáticamente gracias a onSnapshot
-        } catch (error) {
-            console.error("Error al crear el viaje: ", error);
-            alert('Hubo un error al crear el viaje. Revisa la consola para más detalles.');
-        }
-    });
-
-
-    // --- LÓGICA DE FIREBASE ---
-
-    /**
-     * Formatea una fecha de Firestore a un formato legible (dd/mm/yyyy)
-     * @param {firebase.firestore.Timestamp} timestamp 
-     */
-    function formatDate(timestamp) {
-        if (!timestamp) return 'N/A';
-        const date = timestamp.toDate();
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    }
-
-    /**
-     * Carga los viajes desde Firestore en tiempo real y los muestra en la lista.
-     */
-    function loadTrips() {
-        tripsList.innerHTML = '<p>Cargando Viajes...</p>';
-
-        // Escuchar cambios en tiempo real
-        tripsCollection.orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-            if (snapshot.empty) {
-                tripsList.innerHTML = '<p>No hay viajes creados. ¡Crea el primero usando el botón "Nuevo Viaje"!</p>';
-                return;
-            }
-            
-            tripsList.innerHTML = ''; // Limpiar la lista antes de renderizar
-            snapshot.forEach(doc => {
-                const trip = doc.data();
-                const tripId = doc.id;
-                const tripElement = document.createElement('div');
-                tripElement.classList.add('trip-item'); // Necesitaremos estilos para esta clase
-                tripElement.setAttribute('data-id', tripId);
-
-                if (trip.themeColor) {
-                    tripElement.style.borderLeftColor = trip.themeColor;
-                }
-
-                tripElement.innerHTML = `
-                    <div class="trip-info">
-                        <div class="trip-row-main">
-                            <h3>${trip.name}</h3>
-                            <span class="trip-city"><i class="fas fa-map-marker-alt"></i> ${trip.city}</span>
-                        </div>
-                        <div class="trip-row-details">
-                            <span><i class="fas fa-calendar-alt"></i> ${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}</span>
-                            <span><i class="fas fa-bed"></i> ${trip.rooms} hab. / <i class="fas fa-users"></i> ${trip.people} pers.</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
-                        <button class="btn-primary btn-open-trip" onclick="window.location.href='viaje.html?id=${tripId}'">Abrir Viaje</button>
-                        <button class="btn-secondary btn-duplicate-trip" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fas fa-copy"></i> Duplicar</button>
-                    </div>
-                `;
-                tripElement.querySelector('.btn-duplicate-trip').addEventListener('click', () => duplicateTrip(trip));
-                tripsList.appendChild(tripElement);
-            });
-        }, error => {
-            console.error("Error al cargar los viajes: ", error);
-            tripsList.innerHTML = '<p>Error al cargar los viajes. Revisa la consola y las reglas de seguridad de Firestore.</p>';
-        });
-    }
-
-    // Función para duplicar un viaje existente
-    async function duplicateTrip(originalTrip) {
-        const newName = prompt("Nombre para el nuevo viaje (copia):", `Copia de ${originalTrip.name}`);
-        if (newName === null) return; // Cancelado
-
-        const newTripData = {
-            ...originalTrip,
-            name: newName,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         try {
-            await tripsCollection.add(newTripData);
+            await tripsCollection.add(tripData);
+            createTripForm.reset();
+            createTripCard.style.display = 'none';
+            // La lista se actualizará automáticamente gracias al listener onSnapshot
         } catch (error) {
-            console.error("Error al duplicar el viaje: ", error);
-            alert('Hubo un error al duplicar el viaje.');
+            console.error("Error al crear el viaje: ", error);
+            alert('Hubo un error al crear el viaje.');
+        }
+    });
+
+    // --- LÓGICA DE EDICIÓN Y BORRADO ---
+
+    // Usar delegación de eventos para los botones de la lista
+    tripsList.addEventListener('click', async (e) => {
+        const editButton = e.target.closest('.btn-edit-trip');
+        if (editButton) {
+            const tripId = editButton.dataset.id;
+            handleEditTrip(tripId);
+        }
+
+        const deleteButton = e.target.closest('.btn-delete-trip');
+        if (deleteButton) {
+            const tripId = deleteButton.dataset.id;
+            handleDeleteTrip(tripId);
+        }
+    });
+
+    async function handleEditTrip(tripId) {
+        editingTripId = tripId;
+        const tripDoc = await tripsCollection.doc(tripId).get();
+        if (!tripDoc.exists) return alert("El viaje no existe.");
+        
+        const tripData = tripDoc.data();
+        document.getElementById('editTripName').value = tripData.name;
+        document.getElementById('editTripPeople').value = tripData.people;
+        if (tripData.startDate) {
+            document.getElementById('editTripStartDate').value = tripData.startDate.toDate().toISOString().split('T')[0];
+        }
+        if (tripData.endDate) {
+            document.getElementById('editTripEndDate').value = tripData.endDate.toDate().toISOString().split('T')[0];
+        }
+        editTripModal.style.display = 'flex';
+    }
+
+    async function handleDeleteTrip(tripId) {
+        const tripDoc = await tripsCollection.doc(tripId).get();
+        if (!tripDoc.exists) return;
+
+        const confirmation = confirm(`¿Estás SEGURO de que quieres eliminar el viaje "${tripDoc.data().name}"?\n\n¡ESTA ACCIÓN ES PERMANENTE Y BORRARÁ TODOS LOS HOTELES ASOCIADOS!`);
+        if (!confirmation) return;
+
+        try {
+            const hotelsSnapshot = await tripsCollection.doc(tripId).collection('hotels').get();
+            const batch = db.batch();
+            hotelsSnapshot.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            await tripsCollection.doc(tripId).delete();
+            alert('El viaje ha sido eliminado correctamente.');
+        } catch (error) {
+            console.error("Error al eliminar el viaje:", error);
+            alert("Hubo un error al eliminar el viaje.");
         }
     }
 
-    // Carga inicial de los viajes al cargar la página
-    loadTrips();
+    editTripForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!editingTripId) return;
+        const updatedData = {
+            name: document.getElementById('editTripName').value,
+            people: parseInt(document.getElementById('editTripPeople').value),
+            startDate: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('editTripStartDate').value)),
+            endDate: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('editTripEndDate').value))
+        };
+        try {
+            await tripsCollection.doc(editingTripId).update(updatedData);
+            editTripModal.style.display = 'none';
+        } catch (error) {
+            console.error("Error al actualizar viaje:", error);
+            alert("Error al actualizar los datos del viaje.");
+        } finally {
+            editingTripId = null;
+        }
+    });
 
+    cancelEditTrip.addEventListener('click', () => {
+        editTripModal.style.display = 'none';
+    });
+
+    // --- RENDERIZADO DE VIAJES ---
+
+    // Escuchar cambios en tiempo real en la colección de viajes
+    tripsCollection.orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        if (snapshot.empty) {
+            tripsList.innerHTML = '<p>No hay viajes creados. ¡Anímate y crea el primero!</p>';
+            return;
+        }
+
+        tripsList.innerHTML = ''; // Limpiar la lista antes de renderizar
+        snapshot.forEach(doc => {
+            const trip = doc.data();
+            const tripId = doc.id;
+
+            const tripElement = document.createElement('div');
+            tripElement.classList.add('trip-item');
+            tripElement.style.borderLeftColor = trip.themeColor || 'var(--primary-color)';
+
+            // Formatear fechas
+            const startDate = trip.startDate ? trip.startDate.toDate().toLocaleDateString('es-ES') : 'N/A';
+            const endDate = trip.endDate ? trip.endDate.toDate().toLocaleDateString('es-ES') : 'N/A';
+
+            tripElement.innerHTML = `
+                <div class="trip-info">
+                    <div class="trip-row-main">
+                        <h3>${trip.name}</h3>
+                        <span class="trip-city">${trip.city}</span>
+                    </div>
+                    <div class="trip-row-details">
+                        <span><i class="fas fa-calendar-alt"></i> ${startDate} - ${endDate}</span>
+                        <span><i class="fas fa-bed"></i> ${trip.rooms} hab.</span>
+                        <span><i class="fas fa-users"></i> ${trip.people} pers.</span>
+                    </div>
+                </div>
+                <div class="trip-actions">
+                    <a href="viaje.html?id=${tripId}" class="btn-primary btn-open-trip">Abrir</a>
+                    <button class="btn-secondary btn-icon btn-edit-trip" data-id="${tripId}" title="Editar Viaje"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn-danger btn-icon btn-delete-trip" data-id="${tripId}" title="Eliminar Viaje"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            `;
+            tripsList.appendChild(tripElement);
+        });
+
+    }, error => {
+        console.error("Error al obtener los viajes: ", error);
+        tripsList.innerHTML = '<p>Error al cargar los viajes. Revisa la consola para más detalles.</p>';
+    });
 });

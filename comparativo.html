@@ -11,16 +11,19 @@
 <body>
 
 <div class="container-fluid">
-    <header>
-        <a href="index.html"><img src="img/logo_icon.png" alt="Roomly Logo" class="logo"></a>
-        <nav>
-            <a id="backToTripLink" href="#"><i class="fas fa-arrow-left"></i> Volver al Viaje</a>
-        </nav>
-    </header>
-
     <div class="card">
-        <h2 id="tripTitle">Cargando viaje...</h2>
-        <p id="tripDetails" style="color: var(--text-light-color); margin-top: 0.5rem;"></p>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <a href="index.html">
+                    <img src="img/logo_icon.png" alt="Roomly Logo" style="height: 70px; width: auto; display: block;">
+                </a>
+                <div>
+                    <h2 id="tripTitle" style="margin: 0; font-size: 1.8rem; color: var(--primary-color);">Cargando...</h2>
+                    <p id="tripDetails" style="margin: 0; color: var(--text-light-color);"></p>
+                </div>
+            </div>
+            <a id="backToTripLink" href="#" class="btn-secondary" style="white-space: nowrap;"><i class="fas fa-arrow-left"></i> Volver al Viaje</a>
+        </div>
     </div>
 
     <div class="comparative-view">

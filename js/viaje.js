@@ -27,11 +27,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tripTitle = document.getElementById('tripTitle');
     const tripDetails = document.getElementById('tripDetails');
     const tripStats = document.getElementById('tripStats');
-    const configSection = document.getElementById('configSection');
-    const toggleConfigBtn = document.getElementById('toggleConfigBtn');
     const criteriaList = document.getElementById('criteriaList');
     const criteriaForm = document.getElementById('criteriaForm');
-    
+    const configModal = document.getElementById('configModal');
+    const btnShowConfig = document.getElementById('btnShowConfig');
+    const cancelConfig = document.getElementById('cancelConfig');
+
     const hotelsList = document.getElementById('hotelsList');
     const btnAddHotel = document.getElementById('btnAddHotel');
     const addHotelModal = document.getElementById('addHotelModal');
@@ -41,20 +42,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalTitle = document.getElementById('modalTitle');
     const btnSaveHotel = document.getElementById('btnSaveHotel');
     const btnAnalyzeText = document.getElementById('btnAnalyzeText');
-    const btnFetchFromUrl = document.getElementById('btnFetchFromUrl');
+    const btnOpenUrl = document.getElementById('btnOpenUrl');
     
-    // Elementos para editar viaje
-    const btnEditTrip = document.getElementById('btnEditTrip');
-    const editTripModal = document.getElementById('editTripModal');
-    const btnDeleteTrip = document.getElementById('btnDeleteTrip');
-    const editTripForm = document.getElementById('editTripForm');
-    const cancelEditTrip = document.getElementById('cancelEditTrip');
+    // Elementos para Conclusión IA
+    const btnConclusion = document.getElementById('btnConclusion');
+    const conclusionModal = document.getElementById('conclusionModal');
+    const closeConclusionModal = document.getElementById('closeConclusionModal');
+    const conclusionModalBody = document.getElementById('conclusionModalBody');
+    const btnDownloadPDF = document.getElementById('btnDownloadPDF');
 
     // --- ESTADO GLOBAL ---
     let currentTripConfig = {}; // Guardará { charId: { active: true, weight: 5, name: "..." } }
     let currentTripData = null;
     let editingHotelId = null; // ID del hotel que se está editando (null si es nuevo)
     let allCharacteristics = [];
+    let rankedHotelsList = []; // Para guardar la lista ordenada de hoteles
 
     // --- CARGA INICIAL ---
     
@@ -83,6 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     allCharacteristics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderConfigTable();
 
+    btnDownloadPDF.addEventListener('click', generatePDF);
+
     // 3. Cargar Hoteles (Listener en tiempo real)
     hotelsCollection.onSnapshot(snapshot => {
         const hotels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -91,9 +95,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- FUNCIONES UI: CONFIGURACIÓN ---
 
-    toggleConfigBtn.addEventListener('click', () => {
-        const isHidden = configSection.style.display === 'none';
-        configSection.style.display = isHidden ? 'block' : 'none';
+    btnShowConfig.addEventListener('click', () => {
+        configModal.style.display = 'block';
+        // Scroll suave hacia el formulario
+        configModal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    cancelConfig.addEventListener('click', () => {
+        configModal.style.display = 'none';
     });
 
     function renderConfigTable() {
@@ -146,108 +155,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             await tripRef.update({ criteriaConfig: newConfig });
             alert('Configuración guardada. Los puntos de los hoteles se recalcularán.');
-            configSection.style.display = 'none';
+            configModal.style.display = 'none';
         } catch (error) {
             console.error("Error al guardar config:", error);
             alert("Error al guardar configuración");
         }
     });
 
-    // --- FUNCIONES UI: EDITAR VIAJE ---
-
-    btnEditTrip.addEventListener('click', () => {
-        if (!currentTripData) return;
-
-        // Rellenar formulario con datos actuales
-        document.getElementById('editTripName').value = currentTripData.name;
-        document.getElementById('editTripCity').value = currentTripData.city;
-        document.getElementById('editTripRooms').value = currentTripData.rooms;
-        document.getElementById('editTripPeople').value = currentTripData.people;
-
-        // Formatear fechas para input date (YYYY-MM-DD)
-        if (currentTripData.startDate) {
-            document.getElementById('editTripStartDate').value = currentTripData.startDate.toDate().toISOString().split('T')[0];
-        }
-        if (currentTripData.endDate) {
-            document.getElementById('editTripEndDate').value = currentTripData.endDate.toDate().toISOString().split('T')[0];
-        }
-
-        editTripModal.style.display = 'block';
-    });
-
-    cancelEditTrip.addEventListener('click', () => {
-        editTripModal.style.display = 'none';
-    });
-
-    editTripForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const updatedData = {
-            name: document.getElementById('editTripName').value,
-            city: document.getElementById('editTripCity').value,
-            rooms: parseInt(document.getElementById('editTripRooms').value),
-            people: parseInt(document.getElementById('editTripPeople').value),
-            startDate: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('editTripStartDate').value)),
-            endDate: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('editTripEndDate').value))
-        };
-
-        try {
-            await tripRef.update(updatedData);
-            editTripModal.style.display = 'none';
-            // La UI se actualizará sola gracias al onSnapshot
-        } catch (error) {
-            console.error("Error al actualizar viaje:", error);
-            alert("Error al actualizar los datos del viaje.");
-        }
-    });
-
-    btnDeleteTrip.addEventListener('click', async () => {
-        if (!currentTripData) return;
-
-        const confirmation = confirm(`¿Estás SEGURO de que quieres eliminar el viaje "${currentTripData.name}"?\n\n¡ESTA ACCIÓN ES PERMANENTE Y BORRARÁ TODOS LOS HOTELES ASOCIADOS!`);
-
-        if (confirmation) {
-            try {
-                // 1. Get all hotels in the subcollection
-                const hotelsSnapshot = await hotelsCollection.get();
-                
-                // 2. Create a batch to delete all hotels
-                const batch = db.batch();
-                hotelsSnapshot.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
-
-                // 3. Delete the main trip document
-                await tripRef.delete();
-
-                // 4. Redirect to home
-                alert('El viaje ha sido eliminado correctamente.');
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error("Error al eliminar el viaje:", error);
-                alert("Hubo un error al eliminar el viaje. Revisa la consola.");
-            }
-        }
-    });
-
     // --- FUNCIONES UI: AÑADIR HOTEL ---
 
-    function renderRatingInputs() {
+    function renderRatingInputs(ratings = {}) {
         hotelRatingsInputs.innerHTML = '';
-        const activeIds = Object.keys(currentTripConfig);
-        
-        if (activeIds.length === 0) {
+        const charIdsToRender = Object.keys(ratings);
+    
+        if (charIdsToRender.length === 0) {
+            hotelRatingsInputs.innerHTML = '<p style="grid-column: 1 / -1; font-size: 0.9em; color: var(--text-light-color);">Pega una descripción y pulsa "Analizar" para generar las valoraciones, o añade valoraciones manualmente si lo prefieres.</p>';
             return;
         }
-
-        activeIds.forEach(charId => {
-            const item = currentTripConfig[charId];
+    
+        charIdsToRender.forEach(charId => {
+            const tripConfigItem = currentTripConfig[charId];
+            const masterChar = allCharacteristics.find(c => c.id === charId);
+    
+            const name = tripConfigItem?.name || masterChar?.name || 'Característica Desconocida';
+            const weight = tripConfigItem?.weight || 1;
+            const ratingValue = ratings[charId];
+    
             const div = document.createElement('div');
             div.className = 'input-group';
             div.innerHTML = `
-                <label style="font-size: 0.85rem;">${item.name} <span style="color:var(--secondary-color)">(x${item.weight})</span></label>
-                <input type="number" name="rating_${charId}" min="0" max="10" placeholder="0-10" required>
+                <label style="font-size: 0.85rem;">${name} <span style="color:var(--secondary-color)">(x${weight})</span></label>
+                <input type="number" name="rating_${charId}" min="0" max="10" placeholder="0-10" required value="${ratingValue}">
             `;
             hotelRatingsInputs.appendChild(div);
         });
@@ -255,9 +193,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     btnAddHotel.addEventListener('click', () => {
         if (Object.keys(currentTripConfig).length === 0) {
-            alert("Primero debes configurar y guardar los criterios del viaje.");
-            configSection.style.display = 'block';
-            return;
         }
         editingHotelId = null;
         modalTitle.textContent = "Añadir Nuevo Hotel";
@@ -283,121 +218,248 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!textToAnalyze) {
             alert('Pega primero una descripción en el campo de texto para poder analizarla.');
             return;
-        } 
+        }
 
-        // 1. Resetear inputs y obtenerlos
-        const allRatingInputs = hotelRatingsInputs.querySelectorAll('input[type="number"]');
-        allRatingInputs.forEach(input => {
-            input.value = '';
-            input.classList.remove('rating-defaulted');
-        });
+        hotelRatingsInputs.innerHTML = '';
 
         // Reglas de análisis: qué palabras buscar y qué nota poner.
+        // nameMatches: partes del nombre de la característica en BD (ej: 'ubicación' coincide con '📍 5. Ubicación')
+        // keywords: palabras a buscar en el texto del usuario
         const analysisRules = [
-            { nameMatches: ['piscina'], keywords: ['piscina', 'pool'], score: 8 },
-            { nameMatches: ['gimnasio'], keywords: ['gimnasio', 'gym', 'fitness'], score: 8 },
-            { nameMatches: ['wifi', 'wi-fi', 'conectividad'], keywords: ['wi-fi', 'wifi'], score: 7, negative: ['de pago', 'suplemento', 'con cargo'], negativeScore: 3 },
-            { nameMatches: ['desayuno'], keywords: ['desayuno', 'breakfast'], score: 8, negative: ['de pago', 'suplemento', 'con cargo'], negativeScore: 4 },
-            { nameMatches: ['mascotas', 'pet-friendly'], keywords: ['mascotas', 'pet-friendly', 'se admiten animales'], score: 9 },
-            { nameMatches: ['parking', 'aparcamiento'], keywords: ['parking', 'aparcamiento', 'garaje'], score: 7 },
-            { nameMatches: ['restaurante'], keywords: ['restaurante'], score: 8 },
-            { nameMatches: ['bar'], keywords: ['bar'], score: 7 },
-            { nameMatches: ['accesibilidad', 'accesible'], keywords: ['accesible', 'silla de ruedas'], score: 9 },
-            { nameMatches: ['aire acondicionado'], keywords: ['aire acondicionado', 'a/c'], score: 9 },
-            { nameMatches: ['centro de negocios', 'coworking'], keywords: ['centro de negocios', 'business center'], score: 7 },
-            { nameMatches: ['servicio de habitaciones'], keywords: ['servicio de habitaciones', 'room service'], score: 7 },
-            { nameMatches: ['traslado aeropuerto'], keywords: ['traslado aeropuerto', 'airport shuttle'], score: 7 },
+            { 
+                nameMatches: ['ubicación', 'ubicacion', 'situación', 'entorno'], 
+                keywords: ['ubicación', 'ubicacion', 'situación', 'centro', 'cerca', 'lejos', 'barrio', 'zona', 'vistas'], 
+                score: 8, 
+                positive: ['excelente', 'buena', 'perfecta', 'céntrico', 'mejor', 'espectacular'], positiveScore: 10,
+                negative: ['mala', 'lejos', 'apartado', 'peligroso', 'ruidoso', 'peor'], negativeScore: 4
+            },
+            { 
+                nameMatches: ['limpieza', 'higiene'], 
+                keywords: ['limpio', 'limpieza', 'sucio', 'impecable', 'pulcro', 'manchas'], 
+                score: 8,
+                positive: ['impecable', 'perfecta', 'brillante'], positiveScore: 10,
+                negative: ['sucio', 'polvo', 'manchas', 'olor', 'falta'], negativeScore: 3
+            },
+            { 
+                nameMatches: ['personal', 'atención', 'servicio', 'amabilidad'], 
+                keywords: ['personal', 'staff', 'recepción', 'amable', 'trato', 'atento', 'servicio'], 
+                score: 8,
+                positive: ['encantador', 'excelente', 'ayuda', 'rápido'], positiveScore: 10,
+                negative: ['borde', 'antipático', 'lento', 'maleducado', 'malo'], negativeScore: 3
+            },
+            { 
+                nameMatches: ['habitación', 'habitaciones', 'confort'], 
+                keywords: ['habitación', 'cama', 'colchón', 'almohada', 'espacio', 'descanso'], 
+                score: 7,
+                positive: ['grande', 'espaciosa', 'cómoda', 'confortable', 'enorme'], positiveScore: 9,
+                negative: ['pequeña', 'incomoda', 'dura', 'vieja', 'zulo'], negativeScore: 4
+            },
+            { 
+                nameMatches: ['baño', 'aseo'], 
+                keywords: ['baño', 'ducha', 'agua', 'toallas', 'presión'], 
+                score: 7,
+                positive: ['nuevo', 'grande', 'moderno'], positiveScore: 9,
+                negative: ['pequeño', 'sucio', 'fría', 'viejo'], negativeScore: 4
+            },
+            { 
+                nameMatches: ['ruido', 'insonorización', 'tranquilidad'], 
+                keywords: ['ruido', 'silencioso', 'tranquilo', 'insonorizado', 'paredes'], 
+                score: 8,
+                negative: ['ruido', 'paredes de papel', 'se oye todo', 'molesto'], negativeScore: 3
+            },
+            { 
+                nameMatches: ['desayuno', 'gastronomía', 'comida'], 
+                keywords: ['desayuno', 'breakfast', 'buffet', 'comida', 'cena'], 
+                score: 8, 
+                positive: ['variado', 'rico', 'delicioso', 'abundante'], positiveScore: 9,
+                negative: ['pobre', 'escaso', 'malo', 'caro', 'de pago'], negativeScore: 4 
+            },
+            { nameMatches: ['piscina'], keywords: ['piscina', 'pool'], score: 9, negative: ['pequeña', 'sucia', 'cerrada'], negativeScore: 5 },
+            { nameMatches: ['gimnasio', 'deporte'], keywords: ['gimnasio', 'gym', 'fitness'], score: 8 },
+            { nameMatches: ['wifi', 'wi-fi', 'internet', 'conectividad'], keywords: ['wi-fi', 'wifi', 'internet', 'conexión'], score: 8, negative: ['lento', 'malo', 'de pago', 'no funciona'], negativeScore: 3 },
+            { nameMatches: ['mascotas', 'pet-friendly'], keywords: ['mascotas', 'pet-friendly', 'perros', 'gatos'], score: 10 },
+            { nameMatches: ['parking', 'aparcamiento'], keywords: ['parking', 'aparcamiento', 'garaje', 'coche'], score: 8, negative: ['caro', 'pequeño', 'completo'], negativeScore: 5 },
+            { nameMatches: ['aire acondicionado', 'climatización'], keywords: ['aire acondicionado', 'a/c', 'calefacción', 'frío', 'calor'], score: 9, negative: ['no funciona', 'ruidoso', 'roto'], negativeScore: 3 },
+            { nameMatches: ['calidad-precio', 'precio'], keywords: ['precio', 'caro', 'barato', 'económico', 'calidad-precio'], score: 7, positive: ['buen precio', 'barato', 'económico', 'ganga'], positiveScore: 9, negative: ['caro', 'excesivo', 'robo'], negativeScore: 4 }
         ];
 
-        const scoredInputs = new Set();
-
-        // Iteramos sobre las características activas en este viaje
-        Object.keys(currentTripConfig).forEach(charId => {
-            const characteristic = currentTripConfig[charId];
+        // Iteramos sobre TODAS las características maestras para encontrar coincidencias
+        allCharacteristics.forEach(characteristic => {
+            const charId = characteristic.id;
             const charNameLower = characteristic.name.toLowerCase();
+            let score = null;
 
-            // Buscamos una regla que coincida con el nombre de la característica
+            // 1. Buscamos una regla específica
             const rule = analysisRules.find(r => r.nameMatches.some(match => charNameLower.includes(match)));
 
             if (rule) {
-                // Comprobamos si alguna palabra clave positiva está en el texto
+                // Comprobamos si alguna palabra clave está en el texto
                 if (rule.keywords.some(kw => textToAnalyze.includes(kw))) {
-                    let score = rule.score;
+                    score = rule.score; // Puntuación base
 
-                    // Si se encontró, comprobamos si hay modificadores negativos
+                    // Ajuste por contexto negativo
                     if (rule.negative && rule.negative.some(negKw => textToAnalyze.includes(negKw))) {
                         score = rule.negativeScore;
                     }
-
-                    const input = document.querySelector(`input[name="rating_${charId}"]`);
-                    if (input) {
-                        input.value = score;
-                        scoredInputs.add(input);
+                    // Ajuste por contexto positivo (si no es negativo)
+                    else if (rule.positive && rule.positive.some(posKw => textToAnalyze.includes(posKw))) {
+                        score = rule.positiveScore;
                     }
                 }
             }
-        });
+            
+            // 2. Fallback inteligente: Si no hay regla (o no saltó), buscamos el nombre de la característica en el texto
+            if (score === null) {
+                // Limpiamos el nombre (quitamos emojis y números ej: "📍 5. Ubicación" -> "ubicación")
+                const cleanName = charNameLower
+                    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Emojis
+                    .replace(/^\d+\.\s*/, '') // "1. "
+                    .trim();
+                
+                // Si el nombre limpio (ej: "sostenibilidad") aparece en el texto, lo añadimos
+                if (cleanName.length > 3 && textToAnalyze.includes(cleanName)) {
+                    score = 7; // Puntuación neutra por defecto al mencionar la característica
+                }
+            }
 
-        // 3. Para los no puntuados, poner 1 y estilo.
-        allRatingInputs.forEach(input => {
-            if (!scoredInputs.has(input)) {
-                input.value = 1;
-                input.classList.add('rating-defaulted');
+            // Si hemos calculado un score, añadimos el input
+            if (score !== null) {
+                const config = currentTripConfig[charId] || { weight: 1 };
+                const div = document.createElement('div');
+                div.className = 'input-group';
+                div.innerHTML = `
+                    <label style="font-size: 0.85rem;">${characteristic.name} <span style="color:var(--secondary-color)">(x${config.weight})</span></label>
+                    <input type="number" name="rating_${charId}" min="0" max="10" placeholder="0-10" required value="${score}">
+                `;
+                hotelRatingsInputs.appendChild(div);
             }
         });
 
-        alert('Análisis completado. Revisa las puntuaciones sugeridas.');
+        if (hotelRatingsInputs.childElementCount === 0) {
+            hotelRatingsInputs.innerHTML = '<p style="grid-column: 1 / -1; font-size: 0.9em; color: var(--text-light-color);">No se encontraron características relevantes en la descripción.</p>';
+        }
+        alert('Análisis completado. Se han generado valoraciones para las características encontradas.');
     });
 
-    btnFetchFromUrl.addEventListener('click', async () => {
-        const hotelLinkInput = document.getElementById('hotelLink');
-        const url = hotelLinkInput.value;
-        if (!url || !url.startsWith('http')) {
-            alert('Por favor, introduce una URL válida en el campo "Enlace".');
+    btnOpenUrl.addEventListener('click', () => {
+        const urlInput = document.getElementById('hotelLink');
+        const url = urlInput.value.trim();
+        // Comprobamos que la URL no esté vacía y parezca válida
+        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+            window.open(url, '_blank');
+        } else {
+            alert('Por favor, introduce una URL válida que empiece con http:// o https://');
+        }
+    });
+
+    // --- LÓGICA CONCLUSIÓN IA ---
+    btnConclusion.addEventListener('click', () => {
+        if (rankedHotelsList.length === 0) {
+            alert('Añade y puntúa al menos un hotel para obtener una conclusión.');
             return;
         }
 
-        // Mostrar estado de carga
-        btnFetchFromUrl.disabled = true;
-        btnFetchFromUrl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        const hotelCommentsTextarea = document.getElementById('hotelComments');
+        const winner = rankedHotelsList[0];
+        const secondPlace = rankedHotelsList.length > 1 ? rankedHotelsList[1] : null;
 
-        try {
-            // Llama a la Cloud Function. Asegúrate de que la región coincide.
-            const functions = firebase.app().functions('europe-west1');
-            const scrapeUrl = functions.httpsCallable('scrapeUrl');
-            const result = await scrapeUrl({ url: url });
+        // Generar contenido
+        let conclusionHtml = `
+            <p style="font-size: 1.1rem; text-align: center;">Tras un análisis exhaustivo de las opciones, la elección es clara:</p>
+            <h2 style="text-align: center; color: var(--accent-color); font-size: 2.5rem; margin: 1rem 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">${winner.name}</h2>
+            <p>Este hotel se ha coronado como el <strong>ganador indiscutible</strong> de nuestro ranking, y aquí te explicamos por qué es la decisión perfecta para vuestro viaje a <strong>${currentTripData.city}</strong>.</p>
+        `;
 
-            if (result.data && result.data.text) {
-                hotelCommentsTextarea.value = result.data.text;
-                alert('Descripción cargada con éxito. Ahora puedes hacer clic en "Analizar Descripción".');
-            } else {
-                throw new Error(result.data.error || 'La función no devolvió texto.');
-            }
+        // Encontrar los puntos fuertes
+        const winnerRatings = winner.ratings || {};
+        const topRatedChars = Object.keys(winnerRatings)
+            .filter(charId => currentTripConfig[charId] && winnerRatings[charId] >= 8) // Características activas con nota alta
+            .map(charId => ({
+                name: currentTripConfig[charId].name,
+                rating: winnerRatings[charId],
+                weight: currentTripConfig[charId].weight,
+                score: winnerRatings[charId] * currentTripConfig[charId].weight
+            }))
+            .sort((a, b) => b.score - a.score) // Ordenar por puntos aportados
+            .slice(0, 3); // Coger los 3 mejores
 
-        } catch (error) {
-            console.error("Error al invocar la Cloud Function de scraping:", error);
-            alert(`Hubo un error al cargar los datos de la URL: ${error.message}`);
-            hotelCommentsTextarea.value = `Error al cargar desde ${url}. Detalles: ${error.message}`;
-        } finally {
-            // Restaurar el botón
-            btnFetchFromUrl.disabled = false;
-            btnFetchFromUrl.innerHTML = '<i class="fas fa-cloud-download-alt"></i>';
+        if (topRatedChars.length > 0) {
+            conclusionHtml += `<h4 style="margin-top: 2rem; color: var(--primary-color);">Sus Puntos Fuertes Clave:</h4><ul style="list-style-type: '✅'; padding-left: 1.5rem;">`;
+            topRatedChars.forEach(char => {
+                conclusionHtml += `<li style="margin-bottom: 0.5rem;">Destaca enormemente en <strong>${char.name}</strong>, logrando una puntuación de <strong>${char.rating} sobre 10</strong>.</li>`;
+            });
+            conclusionHtml += `</ul>`;
         }
+
+        // Comparativa de precio
+        if (secondPlace) {
+            if (winner.price <= secondPlace.price) {
+                conclusionHtml += `<p style="margin-top: 1.5rem;">Además, su precio de <strong>${winner.price}€</strong> es muy competitivo, siendo igual o más económico que su rival más cercano.</p>`;
+            } else {
+                const priceDiff = winner.price - secondPlace.price;
+                conclusionHtml += `<p style="margin-top: 1.5rem;">Aunque su precio de <strong>${winner.price}€</strong> es ${priceDiff}€ superior a la siguiente opción, la diferencia en calidad y puntuación (${winner.totalScore} vs ${secondPlace.totalScore} pts) justifica con creces la inversión.</p>`;
+            }
+        } else {
+            conclusionHtml += `<p style="margin-top: 1.5rem;">Con un precio de <strong>${winner.price}€</strong>, ofrece una propuesta de valor excelente.</p>`;
+        }
+
+        conclusionHtml += `
+            <div style="margin-top: 2rem; padding: 1rem; background-color: #eef2f5; border-radius: var(--border-radius); text-align: center;">
+                <p style="font-weight: 600; font-size: 1.2rem; color: var(--primary-color);">En resumen: ¡Habéis acertado!</p>
+                <p>Elegir el <strong>${winner.name}</strong> es apostar sobre seguro. Podéis estar tranquilos, esta elección garantiza una experiencia memorable para vuestro viaje.</p>
+            </div>
+        `;
+
+        conclusionModalBody.innerHTML = conclusionHtml;
+        conclusionModal.style.display = 'flex';
+    });
+
+    closeConclusionModal.addEventListener('click', () => conclusionModal.style.display = 'none');
+    conclusionModal.addEventListener('click', (e) => {
+        if (e.target === conclusionModal) conclusionModal.style.display = 'none';
     });
 
     addHotelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(addHotelForm);
         
         const ratings = {};
-        // Recorrer solo los criterios configurados
-        Object.keys(currentTripConfig).forEach(charId => {
-            const val = formData.get(`rating_${charId}`);
-            if (val) {
-                ratings[charId] = parseInt(val);
+        // Recorrer los inputs que estén actualmente en el DOM
+        const ratingInputs = hotelRatingsInputs.querySelectorAll('input[type="number"]');
+        ratingInputs.forEach(input => {
+            const charId = input.name.replace('rating_', '');
+            if (input.value !== '') {
+                ratings[charId] = parseInt(input.value);
             }
         });
+
+        // --- ACTUALIZACIÓN AUTOMÁTICA DE CRITERIOS ---
+        // Si el hotel trae valoraciones nuevas, las activamos en la configuración del viaje
+        let configChanged = false;
+        const updatedConfig = { ...currentTripConfig };
+
+        Object.keys(ratings).forEach(charId => {
+            // Si la característica tiene nota pero no está activa en el viaje
+            if (!updatedConfig[charId] || !updatedConfig[charId].active) {
+                const masterChar = allCharacteristics.find(c => c.id === charId);
+                if (masterChar) {
+                    updatedConfig[charId] = {
+                        active: true,
+                        weight: updatedConfig[charId]?.weight || 1, // Peso 1 por defecto si es nueva
+                        name: masterChar.name,
+                        category: masterChar.category
+                    };
+                    configChanged = true;
+                }
+            }
+        });
+
+        if (configChanged) {
+            try {
+                await tripRef.update({ criteriaConfig: updatedConfig });
+            } catch (error) {
+                console.error("Error al actualizar criterios del viaje:", error);
+            }
+        }
+        // ---------------------------------------------
 
         const hotelData = {
             name: document.getElementById('hotelName').value,
@@ -461,13 +523,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             return { ...h, ratingScore, priceScore, totalScore: ratingScore + priceScore };
         }).sort((a, b) => b.totalScore - a.totalScore);
 
+        rankedHotelsList = rankedHotels; // Guardar la lista ordenada para usarla en otros sitios
+
         hotelsList.innerHTML = '';
         
         if (rankedHotels.length === 0) {
             if (tripStats) tripStats.innerHTML = '';
             hotelsList.innerHTML = '<p style="text-align: center;">No hay hoteles añadidos aún.</p>';
+            if (btnDownloadPDF) btnDownloadPDF.style.display = 'none';
             return;
         }
+
+        if (btnDownloadPDF) btnDownloadPDF.style.display = 'inline-flex';
 
         // Actualizar Dashboard (Resumen)
         if (tripStats) {
@@ -476,10 +543,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tripStats.innerHTML = `
                 <div><i class="fas fa-hotel" style="color: var(--secondary-color);"></i> <strong>${totalHotels}</strong> Hoteles</div>
                 <div><i class="fas fa-tag" style="color: var(--secondary-color);"></i> <strong>${avgPrice} €</strong> Precio Medio</div>
-                <button id="btnDownloadPDF" class="btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.85rem; margin-left: auto; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-file-pdf"></i> Descargar PDF</button>
             `;
-            
-            document.getElementById('btnDownloadPDF').addEventListener('click', generatePDF);
         }
 
         rankedHotels.forEach((hotel, index) => {
@@ -570,17 +634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('hotelLink').value = hotel.link || '';
         document.getElementById('hotelComments').value = hotel.comments || '';
 
-        // Generar inputs y rellenar valores
-        renderRatingInputs();
-        
-        if (hotel.ratings) {
-            Object.keys(hotel.ratings).forEach(charId => {
-                const input = document.querySelector(`input[name="rating_${charId}"]`);
-                if (input) {
-                    input.value = hotel.ratings[charId];
-                }
-            });
-        }
+        renderRatingInputs(hotel.ratings || {});
 
         addHotelModal.style.display = 'block';
         btnAddHotel.style.display = 'none';
