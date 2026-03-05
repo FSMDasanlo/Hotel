@@ -401,6 +401,18 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     padding: 0.4rem;
 }
 
+/* Estilos para la nueva cabecera de categoría en la tabla de configuración */
+.criteria-table .config-category-header {
+    background-color: #eef2f5;
+    font-size: 1.05rem;
+    position: sticky;
+    top: 0; /* Se pega al borde superior de la tabla al hacer scroll */
+    z-index: 1;
+}
+.criteria-table .config-category-header td {
+    padding: 0.8rem;
+}
+
 /* Ranking de Hoteles */
 .hotel-ranking {
     display: flex;
@@ -414,6 +426,13 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: var(--box-shadow);
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hotel-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
 
 .hotel-header {
@@ -424,6 +443,7 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     gap: 1rem;
     background-color: white;
     cursor: pointer;
+    position: relative; /* Para estar por encima del overlay */
 }
 
 .hotel-header:hover {
@@ -483,6 +503,7 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     padding: 1.5rem;
     background-color: #fafafa;
     border-top: 1px solid var(--border-color);
+    position: relative; /* Para estar por encima del overlay */
 }
 
 .hotel-details.active {
@@ -490,6 +511,63 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
 }
 
 /* --- Vista Comparativa --- */
+
+/* --- Estilos para tarjetas de hotel con imagen de fondo --- */
+.hotel-card.has-bg-image {
+    background-size: cover;
+    background-position: center;
+    color: white;
+}
+
+/* Overlay oscuro para legibilidad */
+.hotel-card.has-bg-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.85) 100%);
+    border-radius: var(--border-radius);
+    z-index: 0;
+}
+
+/* Ajustes de contenido para cuando hay imagen */
+.hotel-card.has-bg-image .hotel-header,
+.hotel-card.has-bg-image .hotel-details {
+    z-index: 1;
+}
+
+.hotel-card.has-bg-image .hotel-header {
+    background-color: transparent;
+}
+
+.hotel-card.has-bg-image .hotel-header:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.hotel-card.has-bg-image .hotel-position {
+    color: var(--accent-color);
+}
+
+.hotel-card.has-bg-image .hotel-score {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.hotel-card.has-bg-image .hotel-price {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+}
+
+.hotel-card.has-bg-image .hotel-actions button {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.hotel-card.has-bg-image .hotel-details {
+    background-color: rgba(0, 0, 0, 0.4);
+}
 .container-fluid {
     max-width: 1400px;
     margin: 2rem auto;
@@ -780,4 +858,59 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     color: var(--text-light-color);
     cursor: pointer;
     line-height: 1;
+}
+
+/* --- Landing Page --- */
+.landing-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-color);
+    text-align: center;
+}
+
+.landing-container {
+    max-width: 800px;
+    padding: 2rem;
+}
+
+.landing-logo {
+    width: 250px;
+    height: auto;
+    margin-bottom: 2rem;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.landing-logo:hover {
+    transform: scale(1.05);
+}
+
+.landing-text {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    font-weight: 600;
+    opacity: 0;
+    animation: fadeInUp 2s ease-out forwards;
+    line-height: 1.6;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.landing-btn {
+    margin-top: 2rem;
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    opacity: 0;
+    animation: fadeInUp 2s ease-out 0.5s forwards;
 }

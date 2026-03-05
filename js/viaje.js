@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSaveHotel = document.getElementById('btnSaveHotel');
     const btnAnalyzeText = document.getElementById('btnAnalyzeText');
     const btnOpenUrl = document.getElementById('btnOpenUrl');
+    const hotelImageUrlInput = document.getElementById('hotelImageUrl');
+    const hotelImagePreview = document.getElementById('hotelImagePreview');
     
     // Elementos para Conclusión IA
     const btnConclusion = document.getElementById('btnConclusion');
@@ -85,6 +87,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     allCharacteristics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderConfigTable();
 
+    // --- EVENT LISTENERS ADICIONALES ---
+    // Previsualización en vivo de la imagen del hotel
+    hotelImageUrlInput.addEventListener('input', () => {
+        const url = hotelImageUrlInput.value.trim();
+        if (url) {
+            hotelImagePreview.src = url;
+            hotelImagePreview.style.display = 'block';
+        } else {
+            hotelImagePreview.style.display = 'none';
+        }
+    });
+    hotelImagePreview.addEventListener('error', () => { hotelImagePreview.style.display = 'none'; });
+
     btnDownloadPDF.addEventListener('click', generatePDF);
 
     // 3. Cargar Hoteles (Listener en tiempo real)
@@ -106,30 +121,81 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     function renderConfigTable() {
-        let html = '<table class="criteria-table"><thead><tr><th>Activo</th><th>Categoría</th><th>Característica</th><th>Peso (1-9)</th></tr></thead><tbody>';
-        
-        // Agrupar para visualización (opcional, aquí listamos plano pero ordenado)
-        // Usamos allCharacteristics que ya viene ordenado por categoría desde Firebase
-        
-        allCharacteristics.forEach(char => {
-            // Verificar si está configurado en el viaje
-            const config = currentTripConfig[char.id] || { active: false, weight: 1 };
+        // 1. Agrupar características por categoría
+        const groupedByCat = allCharacteristics.reduce((acc, char) => {
+            const category = char.category;
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(char);
+            return acc;
+        }, {});
+
+        // 2. Construir el HTML de la tabla
+        let html = '<table class="criteria-table"><thead><tr><th style="width: 80px;">Activo</th><th>Característica</th><th style="width: 120px;">Peso (1-9)</th></tr></thead><tbody>';
+
+        const sortedCategories = Object.keys(groupedByCat).sort();
+
+        sortedCategories.forEach(category => {
+            const charsInCategory = groupedByCat[category];
+            // Comprobar si todas las características de la categoría están activas para marcar el checkbox principal
+            const allActive = charsInCategory.every(char => currentTripConfig[char.id]?.active);
             
+            // Sanitizar el nombre de la categoría para usarlo como un identificador seguro en el HTML
+            const safeCategory = category.replace(/[^a-zA-Z0-9-_]/g, '');
+
+            // Fila de la cabecera de la categoría
             html += `
-                <tr>
+                <tr class="config-category-header">
                     <td style="text-align: center;">
-                        <input type="checkbox" name="active_${char.id}" ${config.active ? 'checked' : ''}>
+                        <input type="checkbox" class="category-toggle-all" data-category="${safeCategory}" title="Activar/desactivar toda la categoría" ${allActive ? 'checked' : ''}>
                     </td>
-                    <td><small>${char.category}</small></td>
-                    <td>${char.name}</td>
-                    <td>
-                        <input type="number" name="weight_${char.id}" min="1" max="9" value="${config.weight}">
-                    </td>
+                    <td colspan="2"><strong>${category}</strong></td>
                 </tr>
             `;
+
+            // Filas para cada característica dentro de la categoría
+            charsInCategory.forEach(char => {
+                const config = currentTripConfig[char.id] || { active: false, weight: 1 };
+                html += `
+                    <tr class="config-char-row">
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="char-checkbox" data-category="${safeCategory}" name="active_${char.id}" ${config.active ? 'checked' : ''}>
+                        </td>
+                        <td>${char.name}</td>
+                        <td>
+                            <input type="number" name="weight_${char.id}" min="1" max="9" value="${config.weight}">
+                        </td>
+                    </tr>
+                `;
+            });
         });
+
         html += '</tbody></table>';
         criteriaList.innerHTML = html;
+
+        // 3. Añadir los event listeners para la nueva funcionalidad
+        const table = criteriaList.querySelector('.criteria-table');
+        if (table) {
+            table.addEventListener('change', (e) => {
+                // Si se pulsa el checkbox "seleccionar todo" de una categoría
+                if (e.target.classList.contains('category-toggle-all')) {
+                    const category = e.target.dataset.category;
+                    const isChecked = e.target.checked;
+                    table.querySelectorAll(`.char-checkbox[data-category="${category}"]`).forEach(charCheckbox => {
+                        charCheckbox.checked = isChecked;
+                    });
+                }
+                // Si se pulsa un checkbox individual, actualizar el estado del checkbox "seleccionar todo"
+                if (e.target.classList.contains('char-checkbox')) {
+                    const category = e.target.dataset.category;
+                    const allCharCheckboxes = table.querySelectorAll(`.char-checkbox[data-category="${category}"]`);
+                    const categoryToggle = table.querySelector(`.category-toggle-all[data-category="${category}"]`);
+                    const allChecked = Array.from(allCharCheckboxes).every(cb => cb.checked);
+                    categoryToggle.checked = allChecked;
+                }
+            });
+        }
     }
 
     // Guardar Configuración
@@ -166,26 +232,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderRatingInputs(ratings = {}) {
         hotelRatingsInputs.innerHTML = '';
-        const charIdsToRender = Object.keys(ratings);
-    
-        if (charIdsToRender.length === 0) {
-            hotelRatingsInputs.innerHTML = '<p style="grid-column: 1 / -1; font-size: 0.9em; color: var(--text-light-color);">Pega una descripción y pulsa "Analizar" para generar las valoraciones, o añade valoraciones manualmente si lo prefieres.</p>';
+        
+        // La lista de inputs se debe basar en los criterios ACTIVOS del viaje, no en los que ya tiene el hotel.
+        const activeCharIds = Object.keys(currentTripConfig).filter(charId => currentTripConfig[charId].active);
+
+        if (activeCharIds.length === 0) {
+            hotelRatingsInputs.innerHTML = '<p style="grid-column: 1 / -1; font-size: 0.9em; color: var(--text-light-color);">No hay criterios activos para este viaje. Ve a "Criterios" para configurarlos y poder valorar.</p>';
             return;
         }
     
-        charIdsToRender.forEach(charId => {
+        // Ordenamos por categoría y nombre para una visualización consistente
+        activeCharIds.sort((a, b) => {
+            const charA = currentTripConfig[a];
+            const charB = currentTripConfig[b];
+            return charA.category.localeCompare(charB.category) || charA.name.localeCompare(charB.name);
+        }).forEach(charId => {
             const tripConfigItem = currentTripConfig[charId];
-            const masterChar = allCharacteristics.find(c => c.id === charId);
-    
-            const name = tripConfigItem?.name || masterChar?.name || 'Característica Desconocida';
-            const weight = tripConfigItem?.weight || 1;
-            const ratingValue = ratings[charId];
+            const ratingValue = ratings[charId] !== undefined ? ratings[charId] : ''; // Usar el valor existente o dejarlo vacío
     
             const div = document.createElement('div');
             div.className = 'input-group';
             div.innerHTML = `
-                <label style="font-size: 0.85rem;">${name} <span style="color:var(--secondary-color)">(x${weight})</span></label>
-                <input type="number" name="rating_${charId}" min="0" max="10" placeholder="0-10" required value="${ratingValue}">
+                <label style="font-size: 0.85rem;">${tripConfigItem.name} <span style="color:var(--secondary-color)">(x${tripConfigItem.weight})</span></label>
+                <input type="number" name="rating_${charId}" min="0" max="10" placeholder="0-10" value="${ratingValue}">
             `;
             hotelRatingsInputs.appendChild(div);
         });
@@ -197,6 +266,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         editingHotelId = null;
         modalTitle.textContent = "Añadir Nuevo Hotel";
         btnSaveHotel.textContent = "Guardar Hotel";
+        addHotelForm.reset();
+        hotelImagePreview.style.display = 'none';
         renderRatingInputs();
 
         addHotelModal.style.display = 'block';
@@ -210,6 +281,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         addHotelModal.style.display = 'none';
         btnAddHotel.style.display = 'inline-flex';
         addHotelForm.reset();
+        hotelImagePreview.style.display = 'none';
     });
 
     // --- ANALIZADOR DE TEXTO (SIN IA) ---
@@ -464,6 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hotelData = {
             name: document.getElementById('hotelName').value,
             link: document.getElementById('hotelLink').value,
+            imageUrl: document.getElementById('hotelImageUrl').value,
             price: parseFloat(document.getElementById('hotelPrice').value) || 0,
             comments: document.getElementById('hotelComments').value,
             ratings: ratings,
@@ -484,6 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             addHotelModal.style.display = 'none';
             btnAddHotel.style.display = 'inline-flex';
             addHotelForm.reset();
+            hotelImagePreview.style.display = 'none';
         } catch (error) {
             console.error("Error al añadir hotel:", error);
             alert("Error al añadir hotel");
@@ -553,6 +627,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 card.classList.add('hotel-winner');
             }
             
+            // Añadir imagen de fondo si existe
+            if (hotel.imageUrl) {
+                card.classList.add('has-bg-image');
+                card.style.backgroundImage = `url('${hotel.imageUrl}')`;
+            }
+
             // Generar detalle de puntos
             let detailsHtml = '<h4>Desglose de Puntos</h4><ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem;">';
             
@@ -632,7 +712,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('hotelName').value = hotel.name;
         document.getElementById('hotelPrice').value = hotel.price;
         document.getElementById('hotelLink').value = hotel.link || '';
+        const imageUrl = hotel.imageUrl || '';
+        hotelImageUrlInput.value = imageUrl;
         document.getElementById('hotelComments').value = hotel.comments || '';
+
+        if (imageUrl) {
+            hotelImagePreview.src = imageUrl;
+            hotelImagePreview.style.display = 'block';
+        } else {
+            hotelImagePreview.style.display = 'none';
+        }
 
         renderRatingInputs(hotel.ratings || {});
 
