@@ -529,18 +529,9 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     gap: 1rem;
 }
 
-/* Imagen en miniatura a la izquierda */
-.hotel-card.has-bg-image .hotel-header::before {
-    content: '';
-    display: block;
-    width: 60px;
-    height: 60px;
-    background-image: var(--hotel-img-url) !important;
-    background-size: cover;
-    background-position: center;
-    border-radius: 8px;
-    flex-shrink: 0;
-    margin-right: 0.5rem;
+/* La miniatura ahora se maneja directamente con una etiqueta img en viaje.js para mayor compatibilidad */
+.hotel-card.has-bg-image .hotel-header .hotel-info-section::before {
+    display: none;
 }
 
 .hotel-card.has-bg-image .hotel-header:hover {

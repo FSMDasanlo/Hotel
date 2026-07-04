@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 "ratings": {
                     "Nombre_del_Criterio": puntuacion_del_1_al_10
                 },
-                "imageUrl": "URL de una imagen representativa del hotel si la conoces (opcional, si no pon cadena vacía)"
+                "imageUrl": "URL DIRECTA de una imagen del hotel (JPG o PNG). IMPORTANTE: Asegúrate de que la URL sea válida y accesible públicamente."
             }
             Los criterios a puntuar son: ${activeCriteriaNames}.
             Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código markdown, solo el JSON puro.`;
@@ -771,7 +771,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Añadir imagen si existe
             if (hotel.imageUrl) {
                 card.classList.add('has-bg-image');
-                card.style.setProperty('--hotel-img-url', `url("${hotel.imageUrl}")`);
+            } else {
+                card.classList.remove('has-bg-image');
             }
 
             // Generar detalle de puntos
@@ -805,14 +806,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.innerHTML = `
                 <div class="hotel-header" onclick="this.nextElementSibling.classList.toggle('active')">
                     <div class="hotel-position">#${index + 1}</div>
-                    <div style="font-weight: 600; font-size: 1.1rem;">${hotel.name}</div>
-                    <div class="hotel-price">${hotel.price} €</div>
-                    <div class="hotel-score">${hotel.totalScore} pts</div>
-                    <div class="hotel-actions">
+                    <div class="hotel-info-section" style="flex-grow: 1; display: flex; align-items: center; gap: 1rem; overflow: hidden; min-width: 0;">
+                        <img class="hotel-img-thumb" src="${hotel.imageUrl || ''}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; flex-shrink: 0; display: ${hotel.imageUrl ? 'block' : 'none'}; border: 1px solid var(--border-color);">
+                        <span class="hotel-name-text" style="font-weight: 600; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${hotel.name}</span>
+                    </div>
+                    <div class="hotel-stats-section" style="display: flex; align-items: center; gap: 1.5rem; flex-shrink: 0;">
+                        <div class="hotel-price" style="width: 80px; text-align: right; font-weight: 600;">${hotel.price} €</div>
+                        <div class="hotel-score" style="width: 80px; text-align: center; background: var(--secondary-color); color: white; padding: 2px 8px; border-radius: 4px;">${hotel.totalScore} pts</div>
+                    </div>
+                    <div class="hotel-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-shrink: 0; width: 100px; margin-left: 1rem;">
                         <button class="btn-edit-hotel" title="Editar"><i class="fas fa-pencil-alt"></i></button>
                         <button class="btn-delete-hotel" title="Borrar"><i class="fas fa-trash-alt"></i></button>
                     </div>
-                    <div><i class="fas fa-chevron-down"></i></div>
+                    <div style="width: 20px; text-align: right; flex-shrink: 0; margin-left: 0.5rem;"><i class="fas fa-chevron-down"></i></div>
                 </div>
                 <div class="hotel-details">
                     ${detailsHtml}
