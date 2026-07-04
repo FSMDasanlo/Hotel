@@ -535,11 +535,12 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     display: block;
     width: 60px;
     height: 60px;
-    background-image: var(--hotel-img-url);
+    background-image: var(--hotel-img-url) !important;
     background-size: cover;
     background-position: center;
     border-radius: 8px;
     flex-shrink: 0;
+    margin-right: 0.5rem;
 }
 
 .hotel-card.has-bg-image .hotel-header:hover {

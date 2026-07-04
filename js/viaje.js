@@ -771,7 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Añadir imagen si existe
             if (hotel.imageUrl) {
                 card.classList.add('has-bg-image');
-                card.style.setProperty('--hotel-img-url', `url('${hotel.imageUrl}')`);
+                card.style.setProperty('--hotel-img-url', `url("${hotel.imageUrl}")`);
             }
 
             // Generar detalle de puntos
