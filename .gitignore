@@ -65,5 +65,8 @@ node_modules/
 # dotenv environment variables file
 .env
 
+# API Keys y configuraciones privadas
+js/config.js
+
 # dataconnect generated files
 .dataconnect

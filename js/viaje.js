@@ -42,9 +42,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalTitle = document.getElementById('modalTitle');
     const btnSaveHotel = document.getElementById('btnSaveHotel');
     const btnAnalyzeText = document.getElementById('btnAnalyzeText');
+    const btnFetchHotelIA = document.getElementById('btnFetchHotelIA');
     const btnOpenUrl = document.getElementById('btnOpenUrl');
     const hotelImageUrlInput = document.getElementById('hotelImageUrl');
     const hotelImagePreview = document.getElementById('hotelImagePreview');
+    
+    // Configuración API Key
+    const groqApiKeyInput = document.getElementById('groqApiKeyInput');
+    const btnSaveApiKey = document.getElementById('btnSaveApiKey');
+
+    if (groqApiKeyInput) {
+        // Cargar clave guardada si existe
+        groqApiKeyInput.value = localStorage.getItem('groq_api_key') || "";
+        
+        btnSaveApiKey.addEventListener('click', () => {
+            const key = groqApiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('groq_api_key', key);
+                alert('API Key guardada localmente en tu navegador.');
+            } else {
+                localStorage.removeItem('groq_api_key');
+                alert('API Key eliminada.');
+            }
+        });
+    }
     
     // Elementos para Conclusión IA
     const btnConclusion = document.getElementById('btnConclusion');
@@ -99,6 +120,126 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     hotelImagePreview.addEventListener('error', () => { hotelImagePreview.style.display = 'none'; });
+
+    // --- FETCH HOTEL INFO WITH IA (GROQ) ---
+    btnFetchHotelIA.addEventListener('click', async () => {
+        const hotelName = document.getElementById('hotelName').value.trim();
+        const hotelUrl = document.getElementById('hotelLink').value.trim();
+        const location = currentTripData?.city || "";
+        
+        if (!hotelName && !hotelUrl) {
+            alert('Por favor, introduce el nombre del hotel o una URL.');
+            return;
+        }
+
+        // Prioridad: 1. LocalStorage (navegador), 2. js/config.js (archivo local)
+        let apiKey = localStorage.getItem('groq_api_key');
+        
+        if (!apiKey && typeof GROQ_API_KEY !== 'undefined') {
+            apiKey = GROQ_API_KEY;
+        }
+        
+        if (!apiKey || apiKey === "TU_API_KEY_AQUI") {
+            alert('Por favor, configura tu API KEY de Groq en el menú de Criterios.');
+            return;
+        }
+
+        const originalText = btnFetchHotelIA.innerHTML;
+        btnFetchHotelIA.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+        btnFetchHotelIA.disabled = true;
+
+        try {
+            // Obtener criterios activos para pedir puntuaciones específicas
+            const activeCriteriaNames = Object.values(currentTripConfig)
+                .filter(c => c.active)
+                .map(c => c.name)
+                .join(', ');
+
+            let promptContext = hotelName ? `el hotel "${hotelName}"` : "un hotel";
+            if (location) promptContext += ` en "${location}"`;
+            if (hotelUrl) promptContext += ` siguiendo este enlace: ${hotelUrl}`;
+
+            const prompt = `Analiza ${promptContext}. 
+            Necesito que me devuelvas un objeto JSON con la siguiente estructura:
+            {
+                "description": "Una descripción detallada de unos 3-4 párrafos que incluya puntos fuertes, puntos débiles y ambiente del hotel.",
+                "ratings": {
+                    "Nombre_del_Criterio": puntuacion_del_1_al_10
+                },
+                "imageUrl": "URL de una imagen representativa del hotel si la conoces (opcional, si no pon cadena vacía)"
+            }
+            Los criterios a puntuar son: ${activeCriteriaNames}.
+            Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código markdown, solo el JSON puro.`;
+
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [
+                        { role: "system", content: "Eres un experto en viajes y hoteles que proporciona información veraz y detallada en formato JSON." },
+                        { role: "user", content: prompt }
+                    ],
+                    temperature: 0.2,
+                    stream: false,
+                    response_format: { type: "json_object" }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Detalle error Groq:', errorData);
+                throw new Error(`Error ${response.status}: ${errorData.error?.message || 'Error en la comunicación con Groq'}`);
+            }
+
+            const data = await response.json();
+            const result = JSON.parse(data.choices[0].message.content);
+
+            // Rellenar descripción
+            document.getElementById('hotelComments').value = result.description;
+            
+            // Rellenar imagen si viene
+            if (result.imageUrl) {
+                document.getElementById('hotelImageUrl').value = result.imageUrl;
+                hotelImagePreview.src = result.imageUrl;
+                hotelImagePreview.style.display = 'block';
+            }
+
+            // Rellenar puntuaciones
+            const ratingsMap = result.ratings || {};
+            const finalRatings = {};
+            
+            Object.keys(currentTripConfig).forEach(charId => {
+                if (currentTripConfig[charId].active) {
+                    const charName = currentTripConfig[charId].name;
+                    // Buscamos coincidencia por nombre (ignorando mayúsculas/minúsculas y emojis si los hay)
+                    const cleanCharName = charName.replace(/[^\w\s]/gi, '').toLowerCase().trim();
+                    
+                    const foundRatingKey = Object.keys(ratingsMap).find(k => {
+                        const cleanK = k.replace(/[^\w\s]/gi, '').toLowerCase().trim();
+                        return cleanK.includes(cleanCharName) || cleanCharName.includes(cleanK);
+                    });
+                    
+                    if (foundRatingKey) {
+                        finalRatings[charId] = ratingsMap[foundRatingKey];
+                    }
+                }
+            });
+
+            renderRatingInputs(finalRatings);
+            alert('Información del hotel obtenida correctamente con IA.');
+
+        } catch (error) {
+            console.error('Error IA:', error);
+            alert('Hubo un problema al obtener la información con IA. Comprueba tu API Key y conexión.');
+        } finally {
+            btnFetchHotelIA.innerHTML = originalText;
+            btnFetchHotelIA.disabled = false;
+        }
+    });
 
     btnDownloadPDF.addEventListener('click', generatePDF);
 
@@ -627,10 +768,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 card.classList.add('hotel-winner');
             }
             
-            // Añadir imagen de fondo si existe
+            // Añadir imagen si existe
             if (hotel.imageUrl) {
                 card.classList.add('has-bg-image');
-                card.style.backgroundImage = `url('${hotel.imageUrl}')`;
+                card.style.setProperty('--hotel-img-url', `url('${hotel.imageUrl}')`);
             }
 
             // Generar detalle de puntos
