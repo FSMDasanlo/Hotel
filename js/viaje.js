@@ -158,21 +158,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (location) promptContext += ` en "${location}"`;
             if (hotelUrl) promptContext += ` siguiendo este enlace: ${hotelUrl}`;
 
-            // Añadir contexto de fechas del viaje si están disponibles
+            // Añadir contexto de fechas y personas si están disponibles
             let tripContext = "";
-            if (currentTripData && currentTripData.startDate && currentTripData.endDate) {
-                tripContext = ` El viaje es del ${currentTripData.startDate} al ${currentTripData.endDate}.`;
+            if (currentTripData) {
+                if (currentTripData.startDate && currentTripData.endDate) {
+                    tripContext += ` El viaje es del ${currentTripData.startDate} al ${currentTripData.endDate}.`;
+                }
+                if (currentTripData.people) {
+                    tripContext += ` El grupo es de ${currentTripData.people} personas.`;
+                }
+                if (currentTripData.rooms) {
+                    tripContext += ` Se necesitan ${currentTripData.rooms} habitaciones.`;
+                }
             }
 
             const prompt = `Analiza ${promptContext}.${tripContext}
             Necesito que me devuelvas un objeto JSON con la siguiente estructura:
             {
                 "description": "Una descripción detallada de unos 3-4 párrafos que incluya puntos fuertes, puntos débiles y ambiente del hotel.",
-                "price": "Un número entero que represente el precio aproximado TOTAL para las fechas indicadas (si no hay fechas o no estás seguro, estima el precio para una noche). Responde SOLO el número.",
+                "price": "Un número entero que represente el precio aproximado TOTAL para la estancia completa de ${currentTripData.people || 2} personas durante las fechas indicadas. Si no tienes las fechas exactas, calcula para una estancia de una semana de ese grupo. Responde SOLO el número.",
+                "hotelLink": "URL de la web oficial del hotel si la conoces con certeza absoluta. Si no estás seguro al 100%, responde null.",
                 "ratings": {
                     "Nombre_del_Criterio": puntuacion_del_1_al_10
-                },
-                "imageUrl": "URL DIRECTA de una imagen del hotel (JPG o PNG). IMPORTANTE: Asegúrate de que la URL sea válida y accesible públicamente."
+                }
             }
             Los criterios a puntuar son: ${activeCriteriaNames}.
             Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código markdown, solo el JSON puro.`;
@@ -204,20 +212,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
             const result = JSON.parse(data.choices[0].message.content);
 
-            // Rellenar precio si viene y no hay uno ya puesto manualmente
-            if (result.price && (!document.getElementById('hotelPrice').value || document.getElementById('hotelPrice').value === "0")) {
-                document.getElementById('hotelPrice').value = result.price;
+            // Rellenar precio — el botón IA siempre sobreescribe el campo
+            if (result.price) {
+                document.getElementById('hotelPrice').value = parseInt(result.price, 10);
             }
 
-            // Rellenar descripción
-            document.getElementById('hotelComments').value = result.description;
-            
-            // Rellenar imagen si viene
-            if (result.imageUrl) {
-                document.getElementById('hotelImageUrl').value = result.imageUrl;
-                hotelImagePreview.src = result.imageUrl;
-                hotelImagePreview.style.display = 'block';
+            // Rellenar enlace del hotel:
+            // Si la IA conoce la URL oficial con certeza, la usamos. Si no, construimos
+            // una búsqueda de Booking.com con los datos reales del viaje.
+            const linkInput = document.getElementById('hotelLink');
+            if (!linkInput.value.trim()) {
+                if (result.hotelLink && result.hotelLink !== 'null') {
+                    linkInput.value = result.hotelLink;
+                } else {
+                    // URL de búsqueda de Booking.com construida con datos reales
+                    const params = new URLSearchParams({
+                        ss: `${hotelName}, ${location}`,
+                        lang: 'es',
+                        group_adults: currentTripData?.people || 2,
+                        no_rooms: currentTripData?.rooms || 1
+                    });
+                    if (currentTripData?.startDate) params.set('checkin', currentTripData.startDate);
+                    if (currentTripData?.endDate) params.set('checkout', currentTripData.endDate);
+                    linkInput.value = `https://www.booking.com/searchresults.html?${params.toString()}`;
+                }
             }
+
+            // Generar imagen con Picsum Photos (siempre funciona, seed = consistente por hotel)
+            const seed = encodeURIComponent(hotelName + location).replace(/%20/g, '-');
+            const reliableImageUrl = `https://picsum.photos/seed/${seed}/400/300`;
+            document.getElementById('hotelImageUrl').value = reliableImageUrl;
+            hotelImagePreview.src = reliableImageUrl;
+            hotelImagePreview.onerror = () => { hotelImagePreview.style.display = 'none'; };
+            hotelImagePreview.style.display = 'block';
 
             // Rellenar puntuaciones
             const ratingsMap = result.ratings || {};
@@ -689,11 +716,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             card.innerHTML = `
                 <div class="hotel-header" onclick="this.nextElementSibling.classList.toggle('active')">
-                    <div class="hotel-position">#${index + 1}</div>
-                    <div class="hotel-info-section" style="flex-grow: 1; display: flex; align-items: center; gap: 1rem; overflow: hidden; min-width: 0;">
-                        <img class="hotel-img-thumb" src="${hotel.imageUrl || ''}" 
+                    <div style="display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0;">
+                        <div class="hotel-position">#${index + 1}</div>
+                        <img src="${hotel.imageUrl || ''}" 
                              onerror="this.style.display='none'"
-                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; flex-shrink: 0; display: ${hotel.imageUrl ? 'block' : 'none'}; border: 1px solid var(--border-color);">
+                             style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px; flex-shrink: 0; display: ${hotel.imageUrl ? 'block' : 'none'}; border: 1px solid var(--border-color);">
+                    </div>
+                    <div class="hotel-info-section" style="flex-grow: 1; display: flex; align-items: center; overflow: hidden; min-width: 0;">
                         <span class="hotel-name-text" style="font-weight: 600; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${hotel.name}</span>
                     </div>
                     <div class="hotel-stats-section" style="display: flex; align-items: center; gap: 1.5rem; flex-shrink: 0;">

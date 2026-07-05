@@ -23,6 +23,9 @@
                     <p id="tripDetails" style="color: var(--text-light-color); font-size: 1.1rem;"></p>
                 </div>
             </div>
+            <a href="mis-viajes.html" class="btn-secondary" title="Volver a Mis Viajes" style="flex-shrink: 0; display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem;">
+                <i class="fas fa-plane"></i> Mis Viajes
+            </a>
         </div>
         <div id="tripStats" style="display: flex; gap: 2rem; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.95rem; color: var(--text-color);"></div>
         
@@ -37,27 +40,29 @@
 
     <!-- Modal / Formulario para añadir Hotel (Oculto por defecto) -->
     <div id="addHotelModal" class="card" style="display: none; border: 2px solid var(--primary-color);">
-        <h3 id="modalTitle">Añadir Nuevo Hotel</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem;">
+            <h3 id="modalTitle" style="margin: 0;">Añadir Nuevo Hotel</h3>
+            <button type="button" id="btnFetchHotelIA" class="btn-accent" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; padding: 0.6rem 1.2rem; white-space: nowrap; flex-shrink: 0;">
+                <i class="fas fa-magic"></i> Obtener datos con IA
+            </button>
+        </div>
         <form id="addHotelForm">
-            <div class="input-group">
-                <label>Nombre del Hotel</label>
-                <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="hotelName" required style="flex-grow: 1;">
-                    <button type="button" id="btnFetchHotelIA" class="btn-accent" title="Traer info con IA" style="flex-shrink: 0;"><i class="fas fa-magic"></i> IA</button>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 100px 1fr; gap: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start;">
                 <div class="input-group">
-                    <label>Precio (€)</label>
-                    <input type="number" id="hotelPrice" placeholder="1200" required>
+                    <label>Nombre del Hotel</label>
+                    <input type="text" id="hotelName" required>
                 </div>
                 <div class="input-group">
-                    <label>Enlace (URL)</label>
+                    <label>Enlace del Hotel (URL)</label>
                     <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="hotelLink" placeholder="https://booking.com/..." style="flex-grow: 1;">
-                        <button type="button" id="btnOpenUrl" class="btn-secondary" title="Abrir enlace" style="flex-shrink: 0; padding: 0.8rem;"><i class="fas fa-external-link-alt"></i></button>
+                        <input type="text" id="hotelLink" placeholder="https://booking.com/..." style="flex-grow: 1; min-width: 0;">
+                        <button type="button" id="btnOpenUrl" class="btn-secondary" title="Abrir enlace" style="flex-shrink: 0; padding: 0.5rem 0.8rem;"><i class="fas fa-external-link-alt"></i></button>
                     </div>
                 </div>
+            </div>
+            <div class="input-group" style="max-width: 150px;">
+                <label>Precio Total (€)</label>
+                <input type="number" id="hotelPrice" placeholder="Ej: 800" required>
             </div>
             <div class="input-group">
                 <label>Descripción del Hotel / Reseñas</label>
