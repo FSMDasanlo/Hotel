@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSaveHotel = document.getElementById('btnSaveHotel');
     const btnFetchHotelIA = document.getElementById('btnFetchHotelIA');
     const btnOpenUrl = document.getElementById('btnOpenUrl');
+    const btnOpenImageUrl = document.getElementById('btnOpenImageUrl');
     const hotelImageUrlInput = document.getElementById('hotelImageUrl');
     const hotelImagePreview = document.getElementById('hotelImagePreview');
     
@@ -247,13 +248,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Generar imagen con Picsum Photos (siempre funciona, seed = consistente por hotel)
-            const seed = encodeURIComponent(hotelName + location).replace(/%20/g, '-');
-            const reliableImageUrl = `https://picsum.photos/seed/${seed}/400/300`;
-            document.getElementById('hotelImageUrl').value = reliableImageUrl;
-            hotelImagePreview.src = reliableImageUrl;
-            hotelImagePreview.onerror = () => { hotelImagePreview.style.display = 'none'; };
-            hotelImagePreview.style.display = 'block';
+            // Generar URL de búsqueda de imágenes en Google (Sustituyendo el placeholder por el nombre real)
+            const searchQuery = encodeURIComponent(hotelName + (location ? ' ' + location : '')).replace(/%20/g, '+');
+            const googleSearchUrl = `https://www.google.com/search?sca_esv=f2f41032b44be3af&sxsrf=APpeQnvTgSxLynH6Z6fHCyCg7gQMeC3Awg:1783280827992&udm=2&fbs=ABfTbFUDadgeu2mn4mYJ8iEZ1GUDd8ABuXxNzQEi57SWOuuPdcURz3vM2j0dknRjZr5tESjRZlWxtHZPI_s9Tv5zfxnnqmeUogUhwx1VgK6zi3Q_A28lmSxIC_HKN-QCmlShJqs9mmBbPrRT2671BTyuGCqP1J1W1D15gHa-bo3mXmSLk0fBjblUy7d6ZnTKrJXTe5I0DmDD&q=${searchQuery}&sa=X&ved=2ahUKEwjv5KXipryVAxXzOfsDHdQkJlsQtKgLegQIFhAB&biw=1396&bih=632&dpr=1.38`;
+            document.getElementById('hotelImageUrl').value = googleSearchUrl;
+            
+            // Ocultamos la previsualización ya que es un link de búsqueda, no una imagen directa
+            hotelImagePreview.style.display = 'none';
+            hotelImagePreview.src = '#'; // Reset de la imagen de previsualización
 
             // Rellenar puntuaciones
             const ratingsMap = result.ratings || {};
@@ -482,6 +484,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.open(url, '_blank');
         } else {
             alert('Por favor, introduce una URL válida que empiece con http:// o https://');
+        }
+    });
+
+    btnOpenImageUrl.addEventListener('click', () => {
+        const url = hotelImageUrlInput.value.trim();
+        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+            window.open(url, '_blank');
+        } else {
+            alert('Por favor, introduce una URL válida de imagen o búsqueda.');
         }
     });
 
@@ -721,7 +732,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
             });
             detailsHtml += '</ul>';
-            if(hotel.link) detailsHtml += `<div style="margin-top:1rem;"><a href="${hotel.link}" target="_blank" class="btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Ver Hotel <i class="fas fa-external-link-alt"></i></a></div>`;
+            // Botones de enlaces externos (Hotel y Búsqueda de Imágenes)
+            if (hotel.link || (hotel.imageUrl && hotel.imageUrl.includes('google.com/search'))) {
+                detailsHtml += `<div style="margin-top:1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">`;
+                
+                if (hotel.link) {
+                    detailsHtml += `<a href="${hotel.link}" target="_blank" class="btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Ver Hotel <i class="fas fa-external-link-alt"></i></a>`;
+                }
+                
+                if (hotel.imageUrl && hotel.imageUrl.includes('google.com/search')) {
+                    detailsHtml += `<a href="${hotel.imageUrl}" target="_blank" class="btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background-color: #e8f0fe; color: #1967d2; border-color: #d2e3fc;">Buscar Imágenes <i class="fas fa-search"></i></a>`;
+                }
+                
+                detailsHtml += `</div>`;
+            }
 
             card.innerHTML = `
                 <div class="hotel-header" onclick="this.nextElementSibling.classList.toggle('active')">
