@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             Necesito que me devuelvas un objeto JSON con la siguiente estructura:
             {
                 "description": "Una descripción detallada de unos 3-4 párrafos que incluya puntos fuertes, puntos débiles y ambiente del hotel.",
-                "price": "Un número entero que represente el precio aproximado TOTAL para la estancia completa de ${currentTripData.people || 2} personas durante las fechas indicadas. Si no tienes las fechas exactas, calcula para una estancia de una semana de ese grupo. Responde SOLO el número.",
+                "price": "Un número entero que represente el precio aproximado TOTAL para la estancia completa de ${currentTripData?.people || 2} personas durante las fechas indicadas. Si no tienes las fechas exactas, calcula para una estancia de una semana de ese grupo. Responde SOLO el número.",
                 "hotelLink": "URL de la web oficial del hotel si la conoces con certeza absoluta. Si no estás seguro al 100%, responde null.",
                 "ratings": {
                     "Nombre_del_Criterio": puntuacion_del_1_al_10
@@ -212,9 +212,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
             const result = JSON.parse(data.choices[0].message.content);
 
+            // Rellenar descripción en el textarea
+            if (result.description) {
+                document.getElementById('hotelComments').value = result.description;
+            }
+
             // Rellenar precio — el botón IA siempre sobreescribe el campo
             if (result.price) {
-                document.getElementById('hotelPrice').value = parseInt(result.price, 10);
+                // Limpiar posibles símbolos de moneda o texto para el parseInt
+                const priceValue = String(result.price).replace(/[^0-9]/g, '');
+                if (priceValue) {
+                    document.getElementById('hotelPrice').value = parseInt(priceValue, 10);
+                }
             }
 
             // Rellenar enlace del hotel:
