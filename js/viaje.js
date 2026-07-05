@@ -159,10 +159,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (location) promptContext += ` en "${location}"`;
             if (hotelUrl) promptContext += ` siguiendo este enlace: ${hotelUrl}`;
 
-            const prompt = `Analiza ${promptContext}. 
+            // Añadir contexto de fechas del viaje si están disponibles
+            let tripContext = "";
+            if (currentTripData && currentTripData.startDate && currentTripData.endDate) {
+                tripContext = ` El viaje es del ${currentTripData.startDate} al ${currentTripData.endDate}.`;
+            }
+
+            const prompt = `Analiza ${promptContext}.${tripContext}
             Necesito que me devuelvas un objeto JSON con la siguiente estructura:
             {
                 "description": "Una descripción detallada de unos 3-4 párrafos que incluya puntos fuertes, puntos débiles y ambiente del hotel.",
+                "price": "Un número entero que represente el precio aproximado TOTAL para las fechas indicadas (si no hay fechas o no estás seguro, estima el precio para una noche). Responde SOLO el número.",
                 "ratings": {
                     "Nombre_del_Criterio": puntuacion_del_1_al_10
                 },
@@ -197,6 +204,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await response.json();
             const result = JSON.parse(data.choices[0].message.content);
+
+            // Rellenar precio si viene y no hay uno ya puesto manualmente
+            if (result.price && (!document.getElementById('hotelPrice').value || document.getElementById('hotelPrice').value === "0")) {
+                document.getElementById('hotelPrice').value = result.price;
+            }
 
             // Rellenar descripción
             document.getElementById('hotelComments').value = result.description;
@@ -807,7 +819,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="hotel-header" onclick="this.nextElementSibling.classList.toggle('active')">
                     <div class="hotel-position">#${index + 1}</div>
                     <div class="hotel-info-section" style="flex-grow: 1; display: flex; align-items: center; gap: 1rem; overflow: hidden; min-width: 0;">
-                        <img class="hotel-img-thumb" src="${hotel.imageUrl || ''}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; flex-shrink: 0; display: ${hotel.imageUrl ? 'block' : 'none'}; border: 1px solid var(--border-color);">
+                        <img class="hotel-img-thumb" src="${hotel.imageUrl || ''}" 
+                             onerror="this.style.display='none'"
+                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; flex-shrink: 0; display: ${hotel.imageUrl ? 'block' : 'none'}; border: 1px solid var(--border-color);">
                         <span class="hotel-name-text" style="font-weight: 600; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${hotel.name}</span>
                     </div>
                     <div class="hotel-stats-section" style="display: flex; align-items: center; gap: 1.5rem; flex-shrink: 0;">
@@ -865,6 +879,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (imageUrl) {
             hotelImagePreview.src = imageUrl;
+            hotelImagePreview.onerror = () => { hotelImagePreview.style.display = 'none'; };
             hotelImagePreview.style.display = 'block';
         } else {
             hotelImagePreview.style.display = 'none';
