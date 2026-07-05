@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hotelRatingsInputs = document.getElementById('hotelRatingsInputs');
     const modalTitle = document.getElementById('modalTitle');
     const btnSaveHotel = document.getElementById('btnSaveHotel');
-    const btnAnalyzeText = document.getElementById('btnAnalyzeText');
     const btnFetchHotelIA = document.getElementById('btnFetchHotelIA');
     const btnOpenUrl = document.getElementById('btnOpenUrl');
     const hotelImageUrlInput = document.getElementById('hotelImageUrl');
@@ -405,9 +404,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
             const div = document.createElement('div');
             div.className = 'input-group';
+            div.style.marginBottom = '0';
             div.innerHTML = `
-                <label style="font-size: 0.85rem;">${tripConfigItem.name} <span style="color:var(--secondary-color)">(x${tripConfigItem.weight})</span></label>
-                <input type="number" name="rating_${charId}" min="0" max="10" placeholder="0-10" value="${ratingValue}">
+                <label style="font-size: 0.75rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${tripConfigItem.name}">${tripConfigItem.name}</label>
+                <input type="number" name="rating_${charId}" min="0" max="10" step="0.1" placeholder="0-10" value="${ratingValue}" 
+                       style="padding: 4px 8px; font-size: 0.85rem; border-radius: 6px;">
             `;
             hotelRatingsInputs.appendChild(div);
         });
@@ -435,135 +436,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnAddHotel.style.display = 'inline-flex';
         addHotelForm.reset();
         hotelImagePreview.style.display = 'none';
-    });
-
-    // --- ANALIZADOR DE TEXTO (SIN IA) ---
-    btnAnalyzeText.addEventListener('click', () => {
-        const textToAnalyze = document.getElementById('hotelComments').value.toLowerCase();
-        if (!textToAnalyze) {
-            alert('Pega primero una descripción en el campo de texto para poder analizarla.');
-            return;
-        }
-
-        hotelRatingsInputs.innerHTML = '';
-
-        // Reglas de análisis: qué palabras buscar y qué nota poner.
-        // nameMatches: partes del nombre de la característica en BD (ej: 'ubicación' coincide con '📍 5. Ubicación')
-        // keywords: palabras a buscar en el texto del usuario
-        const analysisRules = [
-            { 
-                nameMatches: ['ubicación', 'ubicacion', 'situación', 'entorno'], 
-                keywords: ['ubicación', 'ubicacion', 'situación', 'centro', 'cerca', 'lejos', 'barrio', 'zona', 'vistas'], 
-                score: 8, 
-                positive: ['excelente', 'buena', 'perfecta', 'céntrico', 'mejor', 'espectacular'], positiveScore: 10,
-                negative: ['mala', 'lejos', 'apartado', 'peligroso', 'ruidoso', 'peor'], negativeScore: 4
-            },
-            { 
-                nameMatches: ['limpieza', 'higiene'], 
-                keywords: ['limpio', 'limpieza', 'sucio', 'impecable', 'pulcro', 'manchas'], 
-                score: 8,
-                positive: ['impecable', 'perfecta', 'brillante'], positiveScore: 10,
-                negative: ['sucio', 'polvo', 'manchas', 'olor', 'falta'], negativeScore: 3
-            },
-            { 
-                nameMatches: ['personal', 'atención', 'servicio', 'amabilidad'], 
-                keywords: ['personal', 'staff', 'recepción', 'amable', 'trato', 'atento', 'servicio'], 
-                score: 8,
-                positive: ['encantador', 'excelente', 'ayuda', 'rápido'], positiveScore: 10,
-                negative: ['borde', 'antipático', 'lento', 'maleducado', 'malo'], negativeScore: 3
-            },
-            { 
-                nameMatches: ['habitación', 'habitaciones', 'confort'], 
-                keywords: ['habitación', 'cama', 'colchón', 'almohada', 'espacio', 'descanso'], 
-                score: 7,
-                positive: ['grande', 'espaciosa', 'cómoda', 'confortable', 'enorme'], positiveScore: 9,
-                negative: ['pequeña', 'incomoda', 'dura', 'vieja', 'zulo'], negativeScore: 4
-            },
-            { 
-                nameMatches: ['baño', 'aseo'], 
-                keywords: ['baño', 'ducha', 'agua', 'toallas', 'presión'], 
-                score: 7,
-                positive: ['nuevo', 'grande', 'moderno'], positiveScore: 9,
-                negative: ['pequeño', 'sucio', 'fría', 'viejo'], negativeScore: 4
-            },
-            { 
-                nameMatches: ['ruido', 'insonorización', 'tranquilidad'], 
-                keywords: ['ruido', 'silencioso', 'tranquilo', 'insonorizado', 'paredes'], 
-                score: 8,
-                negative: ['ruido', 'paredes de papel', 'se oye todo', 'molesto'], negativeScore: 3
-            },
-            { 
-                nameMatches: ['desayuno', 'gastronomía', 'comida'], 
-                keywords: ['desayuno', 'breakfast', 'buffet', 'comida', 'cena'], 
-                score: 8, 
-                positive: ['variado', 'rico', 'delicioso', 'abundante'], positiveScore: 9,
-                negative: ['pobre', 'escaso', 'malo', 'caro', 'de pago'], negativeScore: 4 
-            },
-            { nameMatches: ['piscina'], keywords: ['piscina', 'pool'], score: 9, negative: ['pequeña', 'sucia', 'cerrada'], negativeScore: 5 },
-            { nameMatches: ['gimnasio', 'deporte'], keywords: ['gimnasio', 'gym', 'fitness'], score: 8 },
-            { nameMatches: ['wifi', 'wi-fi', 'internet', 'conectividad'], keywords: ['wi-fi', 'wifi', 'internet', 'conexión'], score: 8, negative: ['lento', 'malo', 'de pago', 'no funciona'], negativeScore: 3 },
-            { nameMatches: ['mascotas', 'pet-friendly'], keywords: ['mascotas', 'pet-friendly', 'perros', 'gatos'], score: 10 },
-            { nameMatches: ['parking', 'aparcamiento'], keywords: ['parking', 'aparcamiento', 'garaje', 'coche'], score: 8, negative: ['caro', 'pequeño', 'completo'], negativeScore: 5 },
-            { nameMatches: ['aire acondicionado', 'climatización'], keywords: ['aire acondicionado', 'a/c', 'calefacción', 'frío', 'calor'], score: 9, negative: ['no funciona', 'ruidoso', 'roto'], negativeScore: 3 },
-            { nameMatches: ['calidad-precio', 'precio'], keywords: ['precio', 'caro', 'barato', 'económico', 'calidad-precio'], score: 7, positive: ['buen precio', 'barato', 'económico', 'ganga'], positiveScore: 9, negative: ['caro', 'excesivo', 'robo'], negativeScore: 4 }
-        ];
-
-        // Iteramos sobre TODAS las características maestras para encontrar coincidencias
-        allCharacteristics.forEach(characteristic => {
-            const charId = characteristic.id;
-            const charNameLower = characteristic.name.toLowerCase();
-            let score = null;
-
-            // 1. Buscamos una regla específica
-            const rule = analysisRules.find(r => r.nameMatches.some(match => charNameLower.includes(match)));
-
-            if (rule) {
-                // Comprobamos si alguna palabra clave está en el texto
-                if (rule.keywords.some(kw => textToAnalyze.includes(kw))) {
-                    score = rule.score; // Puntuación base
-
-                    // Ajuste por contexto negativo
-                    if (rule.negative && rule.negative.some(negKw => textToAnalyze.includes(negKw))) {
-                        score = rule.negativeScore;
-                    }
-                    // Ajuste por contexto positivo (si no es negativo)
-                    else if (rule.positive && rule.positive.some(posKw => textToAnalyze.includes(posKw))) {
-                        score = rule.positiveScore;
-                    }
-                }
-            }
-            
-            // 2. Fallback inteligente: Si no hay regla (o no saltó), buscamos el nombre de la característica en el texto
-            if (score === null) {
-                // Limpiamos el nombre (quitamos emojis y números ej: "📍 5. Ubicación" -> "ubicación")
-                const cleanName = charNameLower
-                    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Emojis
-                    .replace(/^\d+\.\s*/, '') // "1. "
-                    .trim();
-                
-                // Si el nombre limpio (ej: "sostenibilidad") aparece en el texto, lo añadimos
-                if (cleanName.length > 3 && textToAnalyze.includes(cleanName)) {
-                    score = 7; // Puntuación neutra por defecto al mencionar la característica
-                }
-            }
-
-            // Si hemos calculado un score, añadimos el input
-            if (score !== null) {
-                const config = currentTripConfig[charId] || { weight: 1 };
-                const div = document.createElement('div');
-                div.className = 'input-group';
-                div.innerHTML = `
-                    <label style="font-size: 0.85rem;">${characteristic.name} <span style="color:var(--secondary-color)">(x${config.weight})</span></label>
-                    <input type="number" name="rating_${charId}" min="0" max="10" placeholder="0-10" required value="${score}">
-                `;
-                hotelRatingsInputs.appendChild(div);
-            }
-        });
-
-        if (hotelRatingsInputs.childElementCount === 0) {
-            hotelRatingsInputs.innerHTML = '<p style="grid-column: 1 / -1; font-size: 0.9em; color: var(--text-light-color);">No se encontraron características relevantes en la descripción.</p>';
-        }
-        alert('Análisis completado. Se han generado valoraciones para las características encontradas.');
     });
 
     btnOpenUrl.addEventListener('click', () => {

@@ -46,33 +46,39 @@
                     <button type="button" id="btnFetchHotelIA" class="btn-accent" title="Traer info con IA" style="flex-shrink: 0;"><i class="fas fa-magic"></i> IA</button>
                 </div>
             </div>
-            <div class="input-group">
-                <label>Precio Total (€)</label>
-                <input type="number" id="hotelPrice" placeholder="Ej: 1200" required>
-            </div>
-            <div class="input-group">
-                <label>Enlace (URL)</label>
-                <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="hotelLink" placeholder="https://booking.com/..." style="flex-grow: 1;">
-                    <button type="button" id="btnOpenUrl" class="btn-secondary" title="Abrir enlace en una nueva pestaña" style="flex-shrink: 0; padding: 0.8rem;"><i class="fas fa-external-link-alt"></i></button>
+            <div style="display: grid; grid-template-columns: 100px 1fr; gap: 1rem;">
+                <div class="input-group">
+                    <label>Precio (€)</label>
+                    <input type="number" id="hotelPrice" placeholder="1200" required>
+                </div>
+                <div class="input-group">
+                    <label>Enlace (URL)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="hotelLink" placeholder="https://booking.com/..." style="flex-grow: 1;">
+                        <button type="button" id="btnOpenUrl" class="btn-secondary" title="Abrir enlace" style="flex-shrink: 0; padding: 0.8rem;"><i class="fas fa-external-link-alt"></i></button>
+                    </div>
                 </div>
             </div>
             <div class="input-group">
-                <label>URL de la Imagen de Portada</label>
-                <input type="text" id="hotelImageUrl" placeholder="https://.../imagen.jpg">
-                <img id="hotelImagePreview" src="#" alt="Previsualización de la imagen" style="display: none; max-width: 100%; height: auto; margin-top: 1rem; border-radius: 8px;">
-            </div>
-            <div class="input-group">
                 <label>Descripción del Hotel / Reseñas</label>
-                <textarea id="hotelComments" rows="4" placeholder="Pega aquí la descripción del hotel para analizar..."></textarea>
+                <textarea id="hotelComments" rows="4" placeholder="La IA rellenará este campo al analizar el hotel..."></textarea>
             </div>
             
-            <h4>Valoración de Criterios (0 - 10)</h4>
-            <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">Puntúa solo los criterios activos para este viaje.</p>
-            <button type="button" id="btnAnalyzeText" class="btn-accent" style="margin-bottom: 1rem; font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fas fa-robot"></i> Analizar Descripción</button>
-            
-            <div id="hotelRatingsInputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <!-- Inputs generados dinámicamente según la configuración -->
+            <div style="background: #f8f9fa; border: 1px solid var(--border-color); border-radius: 12px; padding: 1.2rem; margin: 1.5rem 0;">
+                <h4 style="margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-star" style="color: var(--secondary-color);"></i> Valoración de Criterios
+                </h4>
+                <p style="font-size: 0.75rem; color: #666; margin-bottom: 1rem;">La IA sugerirá puntuaciones basadas en la descripción.</p>
+                
+                <div id="hotelRatingsInputs" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.8rem;">
+                    <!-- Inputs generados dinámicamente -->
+                </div>
+            </div>
+
+            <div class="input-group" style="opacity: 0.6; margin-top: 1rem;">
+                <label style="font-size: 0.8rem;">URL de la Imagen (Opcional)</label>
+                <input type="text" id="hotelImageUrl" placeholder="https://..." style="font-size: 0.8rem; padding: 0.4rem;">
+                <img id="hotelImagePreview" src="#" alt="Previsualización" style="display: none; max-width: 100px; height: auto; margin-top: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
             </div>
 
             <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
