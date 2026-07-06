@@ -96,7 +96,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = doc.data();
             currentTripData = data;
             tripTitle.textContent = data.name;
-            tripDetails.textContent = `${data.city} | ${data.rooms} hab. | ${data.people} pers.`;
+            
+            let details = `${data.city} | `;
+            if (data.startDate && data.endDate) {
+                const start = data.startDate.toDate().toLocaleDateString();
+                const end = data.endDate.toDate().toLocaleDateString();
+                details += `${start} a ${end} | `;
+            }
+            details += `${data.rooms} hab. | ${data.people} pers.`;
+            tripDetails.textContent = details;
             
             // Actualizar configuración local si existe en la BD
             if (data.criteriaConfig) {
@@ -153,7 +161,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         let tripContext = "";
         if (currentTripData) {
             if (currentTripData.startDate && currentTripData.endDate) {
-                tripContext += ` El viaje es del ${currentTripData.startDate} al ${currentTripData.endDate}.`;
+                const sDate = currentTripData.startDate.toDate().toISOString().split('T')[0];
+                const eDate = currentTripData.endDate.toDate().toISOString().split('T')[0];
+                tripContext += ` El viaje es del ${sDate} al ${eDate}.`;
             }
             if (currentTripData.people) {
                 tripContext += ` El grupo es de ${currentTripData.people} personas.`;
