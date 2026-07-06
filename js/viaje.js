@@ -74,6 +74,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const conclusionModalBody = document.getElementById('conclusionModalBody');
     const btnDownloadPDF = document.getElementById('btnDownloadPDF');
 
+    // Elementos para Prompt IA
+    const promptModal = document.getElementById('promptModal');
+    const closePromptModal = document.getElementById('closePromptModal');
+    const promptTextArea = document.getElementById('promptTextArea');
+    const btnSendPromptIA = document.getElementById('btnSendPromptIA');
+    const btnCancelPromptIA = document.getElementById('btnCancelPromptIA');
+
     // --- ESTADO GLOBAL ---
     let currentTripConfig = {}; // Guardará { charId: { active: true, weight: 5, name: "..." } }
     let currentTripData = null;
@@ -132,6 +139,55 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Obtener criterios activos para pedir puntuaciones específicas
+        const activeCriteriaNames = Object.values(currentTripConfig)
+            .filter(c => c.active)
+            .map(c => c.name)
+            .join(', ');
+
+        let promptContext = hotelName ? `el hotel "${hotelName}"` : "un hotel";
+        if (location) promptContext += ` en "${location}"`;
+        if (hotelUrl) promptContext += ` siguiendo este enlace: ${hotelUrl}`;
+
+        // Añadir contexto de fechas y personas si están disponibles
+        let tripContext = "";
+        if (currentTripData) {
+            if (currentTripData.startDate && currentTripData.endDate) {
+                tripContext += ` El viaje es del ${currentTripData.startDate} al ${currentTripData.endDate}.`;
+            }
+            if (currentTripData.people) {
+                tripContext += ` El grupo es de ${currentTripData.people} personas.`;
+            }
+            if (currentTripData.rooms) {
+                tripContext += ` Se necesitan ${currentTripData.rooms} habitaciones.`;
+            }
+        }
+
+        const prompt = `Analiza ${promptContext}.${tripContext}
+Necesito que me devuelvas un objeto JSON con la siguiente estructura:
+{
+    "description": "Una descripción detallada de unos 3-4 párrafos que incluya puntos fuertes, puntos débiles y ambiente del hotel.",
+    "price": "Un número entero que represente el precio aproximado TOTAL para la estancia completa de ${currentTripData?.people || 2} personas durante las fechas indicadas. Si no tienes las fechas exactas, calcula para una estancia de una semana de ese grupo. Responde SOLO el número.",
+    "hotelLink": "URL de la web oficial del hotel si la conoces con certeza absoluta. Si no estás seguro al 100%, responde null.",
+    "ratings": {
+        "Nombre_del_Criterio": puntuacion_del_1_al_10
+    }
+}
+Los criterios a puntuar son: ${activeCriteriaNames}.
+Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código markdown, solo el JSON puro.`;
+
+        promptTextArea.value = prompt;
+        promptModal.style.display = 'flex';
+    });
+
+    closePromptModal.addEventListener('click', () => promptModal.style.display = 'none');
+    btnCancelPromptIA.addEventListener('click', () => promptModal.style.display = 'none');
+
+    btnSendPromptIA.addEventListener('click', async () => {
+        const prompt = promptTextArea.value.trim();
+        const hotelName = document.getElementById('hotelName').value.trim();
+        const location = currentTripData?.city || "";
+
         // Ofuscación para evitar detección de secretos de GitHub
         const _a = "gsk_";
         const _b = "pfEQLmD5eaEorJxYzBS7";
@@ -144,48 +200,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        promptModal.style.display = 'none'; 
         const originalText = btnFetchHotelIA.innerHTML;
-        btnFetchHotelIA.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+        btnFetchHotelIA.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
         btnFetchHotelIA.disabled = true;
 
         try {
-            // Obtener criterios activos para pedir puntuaciones específicas
-            const activeCriteriaNames = Object.values(currentTripConfig)
-                .filter(c => c.active)
-                .map(c => c.name)
-                .join(', ');
-
-            let promptContext = hotelName ? `el hotel "${hotelName}"` : "un hotel";
-            if (location) promptContext += ` en "${location}"`;
-            if (hotelUrl) promptContext += ` siguiendo este enlace: ${hotelUrl}`;
-
-            // Añadir contexto de fechas y personas si están disponibles
-            let tripContext = "";
-            if (currentTripData) {
-                if (currentTripData.startDate && currentTripData.endDate) {
-                    tripContext += ` El viaje es del ${currentTripData.startDate} al ${currentTripData.endDate}.`;
-                }
-                if (currentTripData.people) {
-                    tripContext += ` El grupo es de ${currentTripData.people} personas.`;
-                }
-                if (currentTripData.rooms) {
-                    tripContext += ` Se necesitan ${currentTripData.rooms} habitaciones.`;
-                }
-            }
-
-            const prompt = `Analiza ${promptContext}.${tripContext}
-            Necesito que me devuelvas un objeto JSON con la siguiente estructura:
-            {
-                "description": "Una descripción detallada de unos 3-4 párrafos que incluya puntos fuertes, puntos débiles y ambiente del hotel.",
-                "price": "Un número entero que represente el precio aproximado TOTAL para la estancia completa de ${currentTripData?.people || 2} personas durante las fechas indicadas. Si no tienes las fechas exactas, calcula para una estancia de una semana de ese grupo. Responde SOLO el número.",
-                "hotelLink": "URL de la web oficial del hotel si la conoces con certeza absoluta. Si no estás seguro al 100%, responde null.",
-                "ratings": {
-                    "Nombre_del_Criterio": puntuacion_del_1_al_10
-                }
-            }
-            Los criterios a puntuar son: ${activeCriteriaNames}.
-            Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código markdown, solo el JSON puro.`;
-
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {

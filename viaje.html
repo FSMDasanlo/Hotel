@@ -130,6 +130,26 @@
 
 </div>
 
+<!-- Modal para Revisar Prompt IA -->
+<div id="promptModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content card" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-magic"></i> Revisar Prompt para la IA</h3>
+            <button id="closePromptModal" class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.9rem; margin-bottom: 1rem;">Puedes ajustar el mensaje que se enviará a la IA para obtener mejores resultados.</p>
+            <div class="input-group">
+                <textarea id="promptTextArea" rows="12" style="width: 100%; font-family: monospace; font-size: 0.85rem; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);"></textarea>
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button id="btnSendPromptIA" class="btn-primary">Enviar a la IA</button>
+                <button id="btnCancelPromptIA" class="btn-secondary" style="background-color: #6c757d;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal para Conclusión IA -->
 <div id="conclusionModal" class="modal-overlay" style="display: none;">
     <div class="modal-content card">
