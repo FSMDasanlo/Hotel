@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let editingHotelId = null; // ID del hotel que se está editando (null si es nuevo)
     let allCharacteristics = [];
     let rankedHotelsList = []; // Para guardar la lista ordenada de hoteles
+    let hotelPriceManuallyEdited = false;
 
     // --- CARGA INICIAL ---
     
@@ -135,6 +136,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     hotelImagePreview.addEventListener('error', () => { hotelImagePreview.style.display = 'none'; });
+
+    const hotelPriceInput = document.getElementById('hotelPrice');
+    hotelPriceInput.addEventListener('input', () => {
+        hotelPriceManuallyEdited = true;
+    });
 
     // --- FETCH HOTEL INFO WITH IA (GROQ) ---
     btnFetchHotelIA.addEventListener('click', async () => {
@@ -248,8 +254,8 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
                 document.getElementById('hotelComments').value = result.description;
             }
 
-            // Rellenar precio — el botón IA siempre sobreescribe el campo
-            if (result.price) {
+            // Rellenar precio — la edición manual del usuario tiene prioridad sobre la propuesta de la IA.
+            if (result.price && !hotelPriceManuallyEdited) {
                 // Limpiar posibles símbolos de moneda o texto para el parseInt
                 const priceValue = String(result.price).replace(/[^0-9]/g, '');
                 if (priceValue) {
@@ -486,6 +492,7 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
         if (Object.keys(currentTripConfig).length === 0) {
         }
         editingHotelId = null;
+        hotelPriceManuallyEdited = false;
         modalTitle.textContent = "Añadir Nuevo Hotel";
         btnSaveHotel.textContent = "Guardar Hotel";
         addHotelForm.reset();
@@ -500,6 +507,7 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
     });
 
     cancelAddHotel.addEventListener('click', () => {
+        hotelPriceManuallyEdited = false;
         addHotelModal.style.display = 'none';
         btnAddHotel.style.display = 'inline-flex';
         addHotelForm.reset();
@@ -656,6 +664,7 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
             } else {
                 await hotelsCollection.add(hotelData);
             }
+            hotelPriceManuallyEdited = false;
             addHotelModal.style.display = 'none';
             btnAddHotel.style.display = 'inline-flex';
             addHotelForm.reset();
@@ -681,16 +690,31 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
         return total;
     }
 
-    function renderHotelsRanking(hotels) {
-        // 1. Calcular puntuación por PRECIO
-        // Ordenamos por precio ascendente (barato a caro) para asignar puntos
-        const sortedByPrice = [...hotels].sort((a, b) => (a.price || 0) - (b.price || 0));
+    function getPriceScoreMap(hotels) {
+        const normalizedHotels = [...hotels].map(h => ({ ...h, price: Number(h.price) || 0 }));
+        const sortedByPrice = normalizedHotels
+            .filter(h => h.price > 0)
+            .sort((a, b) => a.price - b.price);
+
         const priceScoreMap = {};
-        
-        sortedByPrice.forEach((h, index) => {
-            // 10 puntos al 1º, 7 al 2º, 4 al 3º, 1 al 4º, -2 al 5º...
-            priceScoreMap[h.id] = 10 - (index * 3);
+
+        sortedByPrice.forEach((hotel, index) => {
+            priceScoreMap[hotel.id] = Math.max(0, 10 - (index * 3));
         });
+
+        normalizedHotels.forEach(hotel => {
+            if (priceScoreMap[hotel.id] === undefined) {
+                priceScoreMap[hotel.id] = 0;
+            }
+        });
+
+        return priceScoreMap;
+    }
+
+    function renderHotelsRanking(hotels) {
+        // 1. Calcular puntuación por PRECIO a partir del importe real de cada hotel
+        // Si el usuario modifica el precio manualmente, este cálculo se reinicia con ese valor.
+        const priceScoreMap = getPriceScoreMap(hotels);
 
         // 2. Calcular puntuaciones totales y ordenar
         const rankedHotels = hotels.map(h => {
@@ -830,6 +854,7 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
 
     function openEditModal(hotel) {
         editingHotelId = hotel.id;
+        hotelPriceManuallyEdited = false;
         modalTitle.textContent = "Editar Hotel";
         btnSaveHotel.textContent = "Actualizar Hotel";
         

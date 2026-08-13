@@ -127,13 +127,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Helper function to get ranked hotels (to avoid recalculating multiple times)
-    function getRankedHotels() {
-        // 1. Calcular puntuación por PRECIO
-        const sortedByPrice = [...allHotels].sort((a, b) => (a.price || 0) - (b.price || 0));
+    function getPriceScoreMap(hotels) {
+        const normalizedHotels = [...hotels].map(h => ({ ...h, price: Number(h.price) || 0 }));
+        const sortedByPrice = normalizedHotels
+            .filter(h => h.price > 0)
+            .sort((a, b) => a.price - b.price);
+
         const priceScoreMap = {};
-        sortedByPrice.forEach((h, index) => {
-            priceScoreMap[h.id] = 10 - (index * 3);
+        sortedByPrice.forEach((hotel, index) => {
+            priceScoreMap[hotel.id] = Math.max(0, 10 - (index * 3));
         });
+
+        normalizedHotels.forEach(hotel => {
+            if (priceScoreMap[hotel.id] === undefined) {
+                priceScoreMap[hotel.id] = 0;
+            }
+        });
+
+        return priceScoreMap;
+    }
+
+    function getRankedHotels() {
+        // 1. Calcular puntuación por PRECIO desde el importe actual de cada hotel
+        const priceScoreMap = getPriceScoreMap(allHotels);
 
         // 2. Calcular puntuaciones totales y ordenar
         return allHotels.map(h => {
