@@ -51,6 +51,25 @@
                 <label for="tripThemeColor">Color del Viaje</label>
                 <input type="color" id="tripThemeColor" value="#014464" style="height: 40px; padding: 5px; width: 100px; border-radius: 8px;">
             </div>
+
+            <div class="input-group">
+                <label><i class="fas fa-sliders-h"></i> Criterios de valoración</label>
+                <p style="font-size: 0.85rem; color: var(--text-light-color); margin-top: 0.2rem;">
+                    Los 5 criterios universales vienen premarcados con peso 5. Puedes desmarcarlos o cambiar su peso.
+                    Si necesitas más, despliega los "Criterios adicionales" de más abajo.
+                    El peso es solo la importancia del criterio para el cálculo final; la calidad real de cada hotel se puntúa aparte (0-10), hotel por hotel.
+                </p>
+            </div>
+            <div id="universalCriteriaContainer">
+                <!-- Tarjetas de criterios universales generadas dinámicamente -->
+            </div>
+            <div id="toggleAdditionalCriteria" class="additional-criteria-toggle">
+                <span><i class="fas fa-plus"></i> Criterios adicionales</span>
+            </div>
+            <div id="additionalCriteriaContainer" style="display: none;">
+                <!-- Tarjetas de criterios adicionales generadas dinámicamente -->
+            </div>
+
             <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                 <button type="submit" class="btn-primary"><i class="fas fa-plus"></i> Crear Viaje</button>
                 <a href="caracteristicas.html" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.4rem;">
@@ -62,12 +81,15 @@
 
     <div class="card">
         <div class="section-header">
-            <h2>Seleccionar Viaje</h2>
+            <h2 id="tripsListTitle">Últimos viajes creados</h2>
             <button id="showCreateTripBtn" class="btn-secondary"><i class="fas fa-plus"></i> Nuevo Viaje</button>
         </div>
         <div id="tripsList">
             <p>Cargando Viajes...</p>
             <!-- Los viajes se cargarán aquí dinámicamente -->
+        </div>
+        <div id="showAllTripsContainer" style="display: none; text-align: center; margin-top: 1rem;">
+            <button id="showAllTripsBtn" class="btn-secondary">Ver todos los viajes</button>
         </div>
     </div>
 </div>
@@ -100,6 +122,21 @@
             </div>
             <button type="submit" class="btn-primary">Guardar Cambios</button>
         </form>
+    </div>
+</div>
+
+<!-- Modal de aviso: criterios insuficientes -->
+<div id="criteriaWarningModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content card" style="max-width: 440px; text-align: center;">
+        <div style="font-size: 3rem; color: #f0ad4e; margin-bottom: 0.5rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">¡Faltan criterios por marcar!</h3>
+        <p id="criteriaWarningText" style="color: var(--text-light-color); margin-bottom: 1.5rem;"></p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button id="btnGoToCriteria" class="btn-primary"><i class="fas fa-sliders-h"></i> Ir a Criterios</button>
+            <button id="btnCancelCriteriaWarning" class="btn-secondary">Cancelar</button>
+        </div>
     </div>
 </div>
 

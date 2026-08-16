@@ -358,6 +358,122 @@ a.btn-primary:hover, a.btn-secondary:hover, a.btn-accent:hover, a.btn-danger:hov
     color: var(--danger-color);
 }
 
+.universal-badge {
+    display: inline-block;
+    background-color: var(--secondary-color);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    vertical-align: middle;
+    margin-left: 0.4rem;
+}
+
+/* --- Selector de criterios en el alta de viaje --- */
+.criteria-selector-card {
+    background: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.criteria-selector-card .category-header {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.criteria-selector-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #f1f1f1;
+    font-size: 0.9rem;
+}
+
+.criteria-selector-item:last-child {
+    border-bottom: none;
+}
+
+.criteria-selector-item label {
+    flex-grow: 1;
+    cursor: pointer;
+}
+
+.criteria-selector-item input[type="number"] {
+    width: 55px;
+    padding: 0.3rem;
+    text-align: center;
+}
+
+.additional-criteria-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #eef2f5;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.8rem 1.2rem;
+    margin: 1rem 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary-color);
+    user-select: none;
+}
+
+.additional-criteria-toggle i {
+    transition: transform 0.2s;
+}
+
+.additional-criteria-toggle.open i {
+    transform: rotate(45deg);
+}
+
+/* --- Valoración de criterios del hotel, agrupada por característica --- */
+.rating-category-block {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.rating-category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.rating-category-avg {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    background-color: var(--secondary-color);
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.rating-category-avg.is-empty {
+    background-color: #adb5bd;
+}
+
+.rating-category-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.8rem;
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
     .container {

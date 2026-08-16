@@ -73,10 +73,13 @@
                 <h4 style="margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-star" style="color: var(--secondary-color);"></i> Valoración de Criterios
                 </h4>
-                <p style="font-size: 0.75rem; color: #666; margin-bottom: 1rem;">La IA sugerirá puntuaciones basadas en la descripción.</p>
-                
-                <div id="hotelRatingsInputs" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.8rem;">
-                    <!-- Inputs generados dinámicamente -->
+                <p style="font-size: 0.75rem; color: #666; margin-bottom: 1rem;">
+                    La IA sugerirá puntuaciones (0-10, calidad real de ese criterio en este hotel) basadas en la descripción.
+                    El "peso" es solo la importancia del criterio para el cálculo final, son dos escalas distintas.
+                </p>
+
+                <div id="hotelRatingsInputs">
+                    <!-- Bloques por característica generados dinámicamente -->
                 </div>
             </div>
 
@@ -106,7 +109,7 @@
                 <button type="button" id="btnSaveApiKey" class="btn-accent" style="padding: 0.3rem 0.6rem; font-size: 0.7rem;"><i class="fas fa-save"></i></button>
             </div>
         </div>
-        <p style="font-size: 0.9rem; margin-bottom: 1rem; margin-top: 1rem;">Selecciona las características importantes para este viaje y asigna un peso del 1 (poco importante) al 9 (muy importante).</p>
+        <p style="font-size: 0.9rem; margin-bottom: 1rem; margin-top: 1rem;">Selecciona las características importantes para este viaje y asigna un peso del 1 (poco importante) al 9 (muy importante). El peso NO es una nota: la calidad real de cada hotel en ese criterio se valora aparte, de 0 a 10.</p>
         <form id="criteriaForm">
             <div id="criteriaList">
                 <!-- Tabla generada dinámicamente -->

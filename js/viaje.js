@@ -124,6 +124,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     allCharacteristics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderConfigTable();
 
+    // Si venimos redirigidos por falta de criterios, abrir el modal de configuración directamente
+    if (new URLSearchParams(window.location.search).get('openCriteria') === '1') {
+        configModal.style.display = 'block';
+    }
+
     // --- EVENT LISTENERS ADICIONALES ---
     // Previsualización en vivo de la imagen del hotel
     hotelImageUrlInput.addEventListener('input', () => {
@@ -153,11 +158,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Obtener criterios activos para pedir puntuaciones específicas
-        const activeCriteriaNames = Object.values(currentTripConfig)
-            .filter(c => c.active)
-            .map(c => c.name)
-            .join(', ');
+        // Obtener criterios activos, agrupados por categoría, para pedir puntuaciones específicas.
+        // Se envían con su ID real (no solo el nombre) para poder mapear la respuesta de la IA sin ambigüedad.
+        const activeCriteria = Object.entries(currentTripConfig)
+            .filter(([, c]) => c.active)
+            .map(([id, c]) => ({ id, name: c.name, category: c.category || '' }));
+
+        const criteriaByCategory = activeCriteria.reduce((acc, c) => {
+            if (!acc[c.category]) acc[c.category] = [];
+            acc[c.category].push(c);
+            return acc;
+        }, {});
+
+        const criteriaListText = Object.keys(criteriaByCategory).map(category => {
+            const lines = criteriaByCategory[category].map(c => `  - id "${c.id}": ${c.name}`).join('\n');
+            return `${category}:\n${lines}`;
+        }).join('\n\n');
 
         let promptContext = hotelName ? `el hotel "${hotelName}"` : "un hotel";
         if (location) promptContext += ` en "${location}"`;
@@ -186,10 +202,13 @@ Necesito que me devuelvas un objeto JSON con la siguiente estructura:
     "price": "Un número entero que represente el precio aproximado TOTAL para la estancia completa de ${currentTripData?.people || 2} personas durante las fechas indicadas. Si no tienes las fechas exactas, calcula para una estancia de una semana de ese grupo. Responde SOLO el número.",
     "hotelLink": "URL de la web oficial del hotel si la conoces con certeza absoluta. Si no estás seguro al 100%, responde null.",
     "ratings": {
-        "Nombre_del_Criterio": puntuacion_del_1_al_10
+        "id_exacto_del_criterio": puntuacion_del_1_al_10
     }
 }
-Los criterios a puntuar son: ${activeCriteriaNames}.
+Los criterios a puntuar, agrupados por categoría, son estos (usa EXACTAMENTE el "id" indicado entre comillas como clave dentro de "ratings", no uses el nombre del criterio):
+
+${criteriaListText}
+
 Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código markdown, solo el JSON puro.`;
 
         promptTextArea.value = prompt;
@@ -296,21 +315,34 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
             // Rellenar puntuaciones
             const ratingsMap = result.ratings || {};
             const finalRatings = {};
-            
+            const usedRatingKeys = new Set();
+
+            // 1. Coincidencia por ID exacto (método principal, sin ambigüedad entre criterios parecidos)
             Object.keys(currentTripConfig).forEach(charId => {
-                if (currentTripConfig[charId].active) {
-                    const charName = currentTripConfig[charId].name;
-                    // Buscamos coincidencia por nombre (ignorando mayúsculas/minúsculas y emojis si los hay)
-                    const cleanCharName = charName.replace(/[^\w\s]/gi, '').toLowerCase().trim();
-                    
-                    const foundRatingKey = Object.keys(ratingsMap).find(k => {
-                        const cleanK = k.replace(/[^\w\s]/gi, '').toLowerCase().trim();
-                        return cleanK.includes(cleanCharName) || cleanCharName.includes(cleanK);
-                    });
-                    
-                    if (foundRatingKey) {
-                        finalRatings[charId] = ratingsMap[foundRatingKey];
-                    }
+                if (currentTripConfig[charId].active && ratingsMap[charId] !== undefined) {
+                    finalRatings[charId] = ratingsMap[charId];
+                    usedRatingKeys.add(charId);
+                }
+            });
+
+            // 2. Fallback por nombre EXACTO (normalizado) para respuestas de IA que no respeten los IDs.
+            //    Se evita el "includes" difuso porque con catálogos grandes ("Calidad de..." se repite en
+            //    varias categorías) generaba choques y asignaba la misma puntuación a criterios distintos.
+            Object.keys(currentTripConfig).forEach(charId => {
+                if (finalRatings[charId] !== undefined) return; // ya resuelto por ID
+                if (!currentTripConfig[charId].active) return;
+
+                const cleanCharName = currentTripConfig[charId].name.replace(/[^\w\s]/gi, '').toLowerCase().trim();
+
+                const foundRatingKey = Object.keys(ratingsMap).find(k => {
+                    if (usedRatingKeys.has(k)) return false;
+                    const cleanK = k.replace(/[^\w\s]/gi, '').toLowerCase().trim();
+                    return cleanK === cleanCharName;
+                });
+
+                if (foundRatingKey) {
+                    finalRatings[charId] = ratingsMap[foundRatingKey];
+                    usedRatingKeys.add(foundRatingKey);
                 }
             });
 
@@ -358,14 +390,19 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
         }, {});
 
         // 2. Construir el HTML de la tabla
-        let html = '<table class="criteria-table"><thead><tr><th style="width: 80px;">Activo</th><th>Característica</th><th style="width: 120px;">Peso (1-9)</th></tr></thead><tbody>';
+        let html = '<table class="criteria-table"><thead><tr><th style="width: 80px;">Activo</th><th>Característica</th><th style="width: 120px;" title="Importancia del criterio en el cálculo final (no es una nota de calidad)">Peso (1-9)</th></tr></thead><tbody>';
 
-        const sortedCategories = Object.keys(groupedByCat).sort();
+        const sortedCategories = Object.keys(groupedByCat).sort((a, b) => {
+            const orderA = groupedByCat[a][0].categoryOrder ?? 999;
+            const orderB = groupedByCat[b][0].categoryOrder ?? 999;
+            return orderA - orderB;
+        });
 
         sortedCategories.forEach(category => {
             const charsInCategory = groupedByCat[category];
             // Comprobar si todas las características de la categoría están activas para marcar el checkbox principal
             const allActive = charsInCategory.every(char => currentTripConfig[char.id]?.active);
+            const isUniversal = !!charsInCategory[0].isUniversal;
             
             // Sanitizar el nombre de la categoría para usarlo como un identificador seguro en el HTML
             const safeCategory = category.replace(/[^a-zA-Z0-9-_]/g, '');
@@ -376,7 +413,7 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
                     <td style="text-align: center;">
                         <input type="checkbox" class="category-toggle-all" data-category="${safeCategory}" title="Activar/desactivar toda la categoría" ${allActive ? 'checked' : ''}>
                     </td>
-                    <td colspan="2"><strong>${category}</strong></td>
+                    <td colspan="2"><strong>${category}</strong> ${isUniversal ? '<span class="universal-badge">UNIVERSAL</span>' : ''}</td>
                 </tr>
             `;
 
@@ -466,27 +503,76 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
             hotelRatingsInputs.innerHTML = '<p style="grid-column: 1 / -1; font-size: 0.9em; color: var(--text-light-color);">No hay criterios activos para este viaje. Ve a "Criterios" para configurarlos y poder valorar.</p>';
             return;
         }
-    
-        // Ordenamos por categoría y nombre para una visualización consistente
-        activeCharIds.sort((a, b) => {
-            const charA = currentTripConfig[a];
-            const charB = currentTripConfig[b];
-            return charA.category.localeCompare(charB.category) || charA.name.localeCompare(charB.name);
-        }).forEach(charId => {
-            const tripConfigItem = currentTripConfig[charId];
-            const ratingValue = ratings[charId] !== undefined ? ratings[charId] : ''; // Usar el valor existente o dejarlo vacío
-    
-            const div = document.createElement('div');
-            div.className = 'input-group';
-            div.style.marginBottom = '0';
-            div.innerHTML = `
-                <label style="font-size: 0.75rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${tripConfigItem.name}">${tripConfigItem.name}</label>
-                <input type="number" name="rating_${charId}" min="0" max="10" step="0.1" placeholder="0-10" value="${ratingValue}" 
-                       style="padding: 4px 8px; font-size: 0.85rem; border-radius: 6px;">
+
+        // Agrupar por categoría para poder mostrar cada característica en su propio bloque con su media
+        const groupedByCat = activeCharIds.reduce((acc, charId) => {
+            const category = currentTripConfig[charId].category || 'Otros';
+            if (!acc[category]) acc[category] = [];
+            acc[category].push(charId);
+            return acc;
+        }, {});
+
+        const sortedCategories = Object.keys(groupedByCat).sort((a, b) => a.localeCompare(b));
+
+        sortedCategories.forEach(category => {
+            const safeCategory = category.replace(/[^a-zA-Z0-9-_]/g, '');
+
+            const block = document.createElement('div');
+            block.className = 'rating-category-block';
+            block.innerHTML = `
+                <div class="rating-category-header">
+                    <span>${category}</span>
+                    <span class="rating-category-avg is-empty" data-category-avg="${safeCategory}">Media: --</span>
+                </div>
+                <div class="rating-category-items" data-category-items="${safeCategory}"></div>
             `;
-            hotelRatingsInputs.appendChild(div);
+
+            const itemsContainer = block.querySelector('.rating-category-items');
+            groupedByCat[category].sort((a, b) => currentTripConfig[a].name.localeCompare(currentTripConfig[b].name)).forEach(charId => {
+                const tripConfigItem = currentTripConfig[charId];
+                const ratingValue = ratings[charId] !== undefined ? ratings[charId] : ''; // Usar el valor existente o dejarlo vacío
+
+                const div = document.createElement('div');
+                div.className = 'input-group';
+                div.style.marginBottom = '0';
+                div.innerHTML = `
+                    <label style="font-size: 0.75rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${tripConfigItem.name}">${tripConfigItem.name}</label>
+                    <input type="number" name="rating_${charId}" class="rating-input" data-category-avg-target="${safeCategory}" min="0" max="10" step="0.1" placeholder="0-10" value="${ratingValue}"
+                           style="padding: 4px 8px; font-size: 0.85rem; border-radius: 6px;">
+                `;
+                itemsContainer.appendChild(div);
+            });
+
+            hotelRatingsInputs.appendChild(block);
+            updateCategoryAverage(safeCategory);
+        });
+
+        // Recalcular la media de la categoría cada vez que se cambia una puntuación
+        hotelRatingsInputs.querySelectorAll('.rating-input').forEach(input => {
+            input.addEventListener('input', () => updateCategoryAverage(input.dataset.categoryAvgTarget));
         });
     }
+
+    // Calcula y pinta la media (0-10) de las puntuaciones rellenadas dentro de una categoría
+    function updateCategoryAverage(safeCategory) {
+        const badge = hotelRatingsInputs.querySelector(`.rating-category-avg[data-category-avg="${safeCategory}"]`);
+        if (!badge) return;
+
+        const values = Array.from(hotelRatingsInputs.querySelectorAll(`.rating-input[data-category-avg-target="${safeCategory}"]`))
+            .map(input => parseFloat(input.value))
+            .filter(value => !isNaN(value));
+
+        if (values.length === 0) {
+            badge.textContent = 'Media: --';
+            badge.classList.add('is-empty');
+            return;
+        }
+
+        const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+        badge.textContent = `Media: ${avg.toFixed(1)}`;
+        badge.classList.remove('is-empty');
+    }
+
 
     btnAddHotel.addEventListener('click', () => {
         if (Object.keys(currentTripConfig).length === 0) {
