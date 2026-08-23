@@ -248,7 +248,7 @@ Responde SOLO con el objeto JSON, sin texto adicional y sin bloques de código m
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
+                    model: "openai/gpt-oss-120b",
                     messages: [
                         { role: "system", content: "Eres un experto en viajes y hoteles que proporciona información veraz y detallada en formato JSON." },
                         { role: "user", content: prompt }
